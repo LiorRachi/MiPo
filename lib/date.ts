@@ -13,6 +13,20 @@ const HEBREW_MONTHS = [
   "בנובמבר",
   "בדצמבר",
 ];
+const HEBREW_MONTHS_PLAIN = [
+  "ינואר",
+  "פברואר",
+  "מרץ",
+  "אפריל",
+  "מאי",
+  "יוני",
+  "יולי",
+  "אוגוסט",
+  "ספטמבר",
+  "אוקטובר",
+  "נובמבר",
+  "דצמבר",
+];
 
 export function toISODate(d: Date): string {
   const y = d.getFullYear();
@@ -83,4 +97,57 @@ export function formatWeekRangeHe(start: Date, end: Date): string {
 
 export function formatFullDateHe(d: Date): string {
   return `${d.getDate()} ${HEBREW_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+export function monthStart(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+/** Adds `n` months to the 1st of `d`'s month (avoids day-of-month overflow —
+ * always normalize to monthStart first if `d` isn't already day 1). */
+export function addMonths(d: Date, n: number): Date {
+  return new Date(d.getFullYear(), d.getMonth() + n, 1);
+}
+
+/** Every day shown on a month-grid calendar for the month containing `month`:
+ * full weeks (Sun–Sat) covering the 1st through the last day of the month,
+ * including the leading/trailing days from adjacent months needed to
+ * complete those weeks. */
+export function monthGrid(month: Date): Date[] {
+  const start = monthStart(month);
+  const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  const gridStart = weekStart(start);
+  const gridEnd = addDays(weekStart(lastDay), 6);
+
+  const days: Date[] = [];
+  for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) {
+    days.push(d);
+  }
+  return days;
+}
+
+export function toISOMonth(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+
+/** Parses a strict `YYYY-MM` string into the 1st of that month. Returns null
+ * for anything malformed. */
+export function parseISOMonth(s: string): Date | null {
+  if (!/^\d{4}-\d{2}$/.test(s)) return null;
+  const [y, m] = s.split("-").map(Number);
+  if (m < 1 || m > 12) return null;
+  return new Date(y, m - 1, 1);
+}
+
+export function formatMonthHe(d: Date): string {
+  return `${HEBREW_MONTHS_PLAIN[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** e.g. "יום א׳, 25/10", or "שבת, 31/10" for Saturdays. */
+export function formatDayLabelHe(d: Date): string {
+  const dm = `${d.getDate()}/${d.getMonth() + 1}`;
+  if (d.getDay() === 6) return `שבת, ${dm}`;
+  return `יום ${hebrewWeekdayLetter(d)}׳, ${dm}`;
 }

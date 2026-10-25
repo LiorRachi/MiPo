@@ -1,9 +1,14 @@
 import Link from "next/link";
 import AddRequestSheet from "@/components/AddRequestSheet";
+import AppHeader from "@/components/AppHeader";
+import BottomNav from "@/components/BottomNav";
+import FetchErrorScreen from "@/components/FetchErrorScreen";
+import NotConfiguredScreen from "@/components/NotConfiguredScreen";
 import { supabaseConfigured } from "@/lib/supabase";
 import { fetchLeaveTypes, fetchRequestsInRange } from "@/lib/leave";
 import {
   addDays,
+  formatDayLabelHe,
   formatWeekRangeHe,
   hebrewWeekdayLetter,
   isSameDay,
@@ -32,21 +37,7 @@ export default async function Home({
   const isCurrentWeek = isSameDay(start, weekStart(today));
 
   if (!supabaseConfigured) {
-    return (
-      <div className="app-shell">
-        <header className="app-header">
-          <div className="app-title">
-            MiPo <small>מי פה</small>
-          </div>
-        </header>
-        <div className="setup-notice">
-          Supabase עוד לא מחובר. הוסיפו <code>NEXT_PUBLIC_SUPABASE_URL</code> ו-
-          <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> לקובץ <code>.env.local</code>,
-          הריצו את <code>supabase/schema.sql</code> בעורך ה-SQL של הפרויקט, ואתחלו
-          את השרת.
-        </div>
-      </div>
-    );
+    return <NotConfiguredScreen active="table" />;
   }
 
   let leaveTypes;
@@ -57,19 +48,7 @@ export default async function Home({
       fetchRequestsInRange(rangeStart, rangeEnd),
     ]);
   } catch {
-    return (
-      <div className="app-shell">
-        <header className="app-header">
-          <div className="app-title">
-            MiPo <small>מי פה</small>
-          </div>
-        </header>
-        <div className="setup-notice">
-          שגיאה בטעינת הנתונים מסופאבייס. נסו לרענן את העמוד; אם זה חוזר, בדקו
-          את חיבור הרשת ואת מדיניות ה-RLS בפרויקט.
-        </div>
-      </div>
-    );
+    return <FetchErrorScreen active="table" />;
   }
 
   const cell = (leaveTypeId: string, day: Date) => {
@@ -84,11 +63,7 @@ export default async function Home({
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="app-title">
-          MiPo <small>מי פה</small>
-        </div>
-      </header>
+      <AppHeader />
 
       <div className="week-nav">
         <Link href={`/?week=${prevWeek}`} aria-label="שבוע קודם">
@@ -120,50 +95,58 @@ export default async function Home({
             אין עדיין סוגי חופשה. הוסיפו שורה ל-<code>leave_types</code> בסופאבייס.
           </div>
         ) : (
-          <table className="grid">
-            <thead>
-              <tr>
-                <th className="label-col"></th>
+          <div className="grid" role="table" aria-label="טבלת בקשות חופשה שבועית">
+            <div role="row" style={{ display: "contents" }}>
+              {days.map((d) => {
+                const today_ = isSameDay(d, today);
+                return (
+                  <div
+                    key={toISODate(d)}
+                    className={`day-col${today_ ? " today" : ""}`}
+                    role="columnheader"
+                    aria-label={formatDayLabelHe(d)}
+                  >
+                    <span className="wd">{hebrewWeekdayLetter(d)}</span>
+                    <span className="dn">{d.getDate()}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {leaveTypes.map((lt, rowIndex) => (
+              <div
+                key={lt.id}
+                role="row"
+                aria-label={lt.label_he}
+                style={{ display: "contents" }}
+              >
                 {days.map((d) => {
-                  const today_ = isSameDay(d, today);
+                  const people = cell(lt.id, d);
+                  const names = people.map((p) => p.employee_name).join(", ");
                   return (
-                    <th key={toISODate(d)} className={`day-col${today_ ? " today" : ""}`}>
-                      <span className="wd">{hebrewWeekdayLetter(d)}</span>
-                      <span className="dn">{d.getDate()}</span>
-                    </th>
+                    <div
+                      key={`${lt.id}-${toISODate(d)}`}
+                      className={`day-cell${rowIndex % 2 === 1 ? " alt" : ""}`}
+                      role="cell"
+                      aria-label={`${lt.label_he}, ${formatDayLabelHe(d)}${names ? `: ${names}` : ""}`}
+                    >
+                      <div className="cell-stack">
+                        {people.map((p) => (
+                          <div key={p.id} className={`chip ${lt.color_key}`}>
+                            {p.employee_name}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   );
                 })}
-              </tr>
-            </thead>
-            <tbody>
-              {leaveTypes.map((lt) => (
-                <tr key={lt.id}>
-                  <td className="label-col">
-                    <span className={`dot type-dot ${lt.color_key}`} />
-                    {lt.label_he}
-                  </td>
-                  {days.map((d) => {
-                    const people = cell(lt.id, d);
-                    return (
-                      <td key={toISODate(d)} className="day-cell">
-                        <div className="cell-stack">
-                          {people.map((p) => (
-                            <div key={p.id} className={`chip ${lt.color_key}`}>
-                              {p.employee_name}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
       {leaveTypes.length > 0 && <AddRequestSheet leaveTypes={leaveTypes} />}
+      <BottomNav active="table" />
     </div>
   );
 }

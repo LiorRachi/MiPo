@@ -49,6 +49,10 @@
   --shadow-sm: 0 1px 2px rgba(20, 20, 30, 0.05);
   --shadow-md: 0 4px 10px rgba(20, 20, 30, 0.08);
   --shadow-lg: 0 10px 24px rgba(20, 20, 30, 0.12);
+
+  /* Height of the fixed .tabbar — single source of truth for anything that
+     needs to clear it (.app-shell padding, .fab/.toast position). */
+  --tabbar-height: 54px;
 }
 
 * {
@@ -85,6 +89,7 @@ select {
   display: flex;
   flex-direction: column;
   position: relative;
+  padding-bottom: var(--tabbar-height);
 }
 
 .app-header {
@@ -186,9 +191,24 @@ select {
   border-radius: 50%;
   flex: none;
   display: inline-block;
+  background: var(--color-text-faint);
 }
 
-/* Week grid table */
+.dot.vacation {
+  background: var(--leave-vacation);
+}
+
+.dot.medical {
+  background: var(--leave-medical);
+}
+
+.dot.other {
+  background: var(--leave-other);
+}
+
+/* Week grid — CSS Grid rather than a <table>. Table semantics (row/column
+   headers) stopped buying much once the row-label column was removed, so a
+   plain grid with 7 equal columns is simpler for the same result. */
 
 .grid-wrap {
   flex: 1;
@@ -196,37 +216,17 @@ select {
   -webkit-overflow-scrolling: touch;
 }
 
-table.grid {
-  border-collapse: collapse;
-  width: 100%;
-  table-layout: fixed;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
 }
 
-table.grid th,
-table.grid td {
+.day-col,
+.day-cell {
   border-bottom: 1px solid var(--color-border);
 }
 
 .day-col {
-  width: 46px;
-  min-width: 46px;
-}
-
-.label-col {
-  width: 86px;
-  min-width: 86px;
-  position: sticky;
-  right: 0;
-  z-index: 2;
-  background: var(--color-surface);
-  border-left: 1px solid var(--color-border);
-}
-
-thead .label-col {
-  background: var(--color-surface);
-}
-
-thead th {
   padding: 8px 2px;
   text-align: center;
   font-size: 11px;
@@ -235,18 +235,18 @@ thead th {
   background: var(--color-surface-alt);
 }
 
-thead th.today {
+.day-col.today {
   color: var(--color-primary);
 }
 
-thead th .wd {
+.day-col .wd {
   display: block;
   font-size: 10px;
   color: var(--color-text-faint);
   font-weight: 500;
 }
 
-thead th .dn {
+.day-col .dn {
   display: inline-block;
   margin-top: 2px;
   width: 22px;
@@ -255,55 +255,43 @@ thead th .dn {
   border-radius: 50%;
 }
 
-thead th.today .dn {
+.day-col.today .dn {
   background: var(--color-primary);
   color: #fff;
 }
 
-tbody td.label-col {
-  padding: 10px 8px;
-  text-align: right;
-  font-size: 12px;
-  font-weight: 600;
-  vertical-align: top;
-}
-
-tbody td.label-col .type-dot {
-  display: inline-block;
-  margin-left: 5px;
-}
-
-tbody td.day-cell {
+.day-cell {
   padding: 4px;
-  vertical-align: top;
-  height: 54px;
-}
-
-tbody tr:nth-child(odd) td.day-cell {
+  min-height: 54px;
   background: var(--color-surface);
 }
 
-tbody tr:nth-child(even) td.day-cell {
+.day-cell.alt {
   background: var(--color-surface-alt);
 }
 
 .cell-stack {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 3px;
-  align-items: stretch;
+  width: 100%;
 }
 
 .chip {
   font-size: 10.5px;
   font-weight: 600;
   text-align: center;
-  padding: 3px 2px;
+  padding: 3px 6px;
   border-radius: var(--radius-sm);
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .chip.vacation {
@@ -328,11 +316,54 @@ tbody tr:nth-child(even) td.day-cell {
   font-size: 13px;
 }
 
+.empty-state {
+  text-align: center;
+  padding: 20px 10px;
+  color: var(--color-text-faint);
+  font-size: 13px;
+}
+
+/* Bottom tab bar (טבלה / סקירה navigation between the two screens) */
+
+.tabbar {
+  display: flex;
+  position: fixed;
+  left: max(0px, calc(50% - 240px));
+  right: max(0px, calc(50% - 240px));
+  bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  z-index: 20;
+}
+
+.tabbar a {
+  flex: 1;
+  text-align: center;
+  padding: 10px 4px 12px;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tabbar a .ic {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 2px;
+}
+
+.tabbar a.active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
 /* FAB + bottom sheet (add-request flow) */
 
 .fab {
   position: fixed;
-  bottom: 18px;
+  bottom: calc(var(--tabbar-height) + 12px);
   left: calc(50% - 240px + 18px);
   width: 52px;
   height: 52px;
@@ -518,7 +549,7 @@ tbody tr:nth-child(even) td.day-cell {
 
 .toast {
   position: fixed;
-  bottom: 86px;
+  bottom: calc(var(--tabbar-height) + 80px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--color-text);
@@ -545,4 +576,186 @@ tbody tr:nth-child(even) td.day-cell {
   padding: 1px 5px;
   border-radius: 4px;
   font-size: 12px;
+}
+
+/* Overview screen: month-grid calendar + day-detail panel */
+
+.cal-card {
+  margin: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cal-head .m-label {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.cal-head a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-alt);
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-wd {
+  text-align: center;
+  font-size: 10px;
+  color: var(--color-text-faint);
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  border: 1px solid transparent;
+  transition: all 0.12s ease;
+  color: inherit;
+  font-family: inherit;
+}
+
+.cal-cell:hover {
+  border-color: var(--color-primary);
+}
+
+.cal-cell.today {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.cal-cell.selected {
+  background: var(--color-primary-bg);
+}
+
+.cal-cell .dots {
+  /* MAX_VISIBLE_DOTS in MonthCalendar.tsx already bounds this to 3 items,
+     which always fits — .cal-cell's own overflow:hidden is the one
+     containment layer left as a backstop. */
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.dot-more {
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+
+.cal-cell.muted:not(.today) {
+  color: var(--color-text-faint);
+}
+
+.cal-legend {
+  display: flex;
+  gap: 14px;
+  padding: 10px 4px 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.cal-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.day-detail {
+  margin: 4px 14px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.day-detail-list {
+  max-height: 228px; /* ~5 rows, deliberately short of 6 so the next row peeks in as a scroll hint */
+  overflow-y: auto;
+}
+
+.day-detail h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.req-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 9px 12px;
+  margin-bottom: 7px;
+}
+
+.req-row:last-child {
+  margin-bottom: 0;
+}
+
+.req-row .who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.type-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+}
+
+.type-tag.vacation {
+  background: var(--leave-vacation-bg);
+  color: var(--leave-vacation);
+}
+
+.type-tag.medical {
+  background: var(--leave-medical-bg);
+  color: var(--leave-medical);
+}
+
+.type-tag.other {
+  background: var(--leave-other-bg);
+  color: var(--leave-other);
 }
