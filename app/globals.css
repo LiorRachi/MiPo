@@ -18,13 +18,22 @@
   --color-success: #1a9c6b;
   --color-success-bg: #e6f6ef;
 
-  /* Leave-type palette — extend when a new leave_types row is added */
+  /* Leave-type palette. color_key is constrained to exactly these names by
+     supabase/schema.sql's CHECK constraint — the /settings screen's color
+     picker only ever offers these, so a type can never end up with a
+     color_key that has no matching token/CSS class here. */
   --leave-vacation: #2f6fed;
   --leave-vacation-bg: #eaf1ff;
   --leave-medical: #d97706;
   --leave-medical-bg: #fef3e2;
   --leave-other: #7c4dff;
   --leave-other-bg: #f1ecff;
+  --leave-green: #16a34a;
+  --leave-green-bg: #e7f6ec;
+  --leave-teal: #0e9488;
+  --leave-teal-bg: #e3f5f3;
+  --leave-rose: #db2777;
+  --leave-rose-bg: #fce7f3;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", "Noto Sans Hebrew", Arial, sans-serif;
   --text-xs: 0.6875rem;
@@ -53,6 +62,88 @@
   /* Height of the fixed .tabbar — single source of truth for anything that
      needs to clear it (.app-shell padding, .fab/.toast position). */
   --tabbar-height: 54px;
+
+  color-scheme: light;
+}
+
+/* Dark mode: system preference (unless the user explicitly chose "light" in
+   /settings), guarded so an explicit choice always wins over the OS. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-bg: #15171c;
+    --color-surface: #1c1f26;
+    --color-surface-alt: #22262e;
+    --color-border: #2e323b;
+    --color-border-strong: #3d424d;
+    --color-text: #eef0f3;
+    --color-text-muted: #9aa1ad;
+    --color-text-faint: #6b7280;
+
+    --color-primary: #5b8df6;
+    --color-primary-hover: #7aa3f8;
+    --color-primary-bg: #1c2b4d;
+
+    --color-danger: #f17077;
+    --color-danger-bg: #3a1e20;
+    --color-success: #3ec992;
+    --color-success-bg: #163828;
+
+    --leave-vacation: #5b8df6;
+    --leave-vacation-bg: #1c2b4d;
+    --leave-medical: #f0a742;
+    --leave-medical-bg: #3a2a10;
+    --leave-other: #a78bfa;
+    --leave-other-bg: #2a2147;
+    --leave-green: #4ade80;
+    --leave-green-bg: #163822;
+    --leave-teal: #2dd4bf;
+    --leave-teal-bg: #113330;
+    --leave-rose: #f472b6;
+    --leave-rose-bg: #3a1830;
+  }
+}
+
+/* Explicit user choice (localStorage, set via ThemeToggle) always wins over
+   the OS preference above, in both directions. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-bg: #15171c;
+  --color-surface: #1c1f26;
+  --color-surface-alt: #22262e;
+  --color-border: #2e323b;
+  --color-border-strong: #3d424d;
+  --color-text: #eef0f3;
+  --color-text-muted: #9aa1ad;
+  --color-text-faint: #6b7280;
+
+  --color-primary: #5b8df6;
+  --color-primary-hover: #7aa3f8;
+  --color-primary-bg: #1c2b4d;
+
+  --color-danger: #f17077;
+  --color-danger-bg: #3a1e20;
+  --color-success: #3ec992;
+  --color-success-bg: #163828;
+
+  --leave-vacation: #5b8df6;
+  --leave-vacation-bg: #1c2b4d;
+  --leave-medical: #f0a742;
+  --leave-medical-bg: #3a2a10;
+  --leave-other: #a78bfa;
+  --leave-other-bg: #2a2147;
+  --leave-green: #4ade80;
+  --leave-green-bg: #163822;
+  --leave-teal: #2dd4bf;
+  --leave-teal-bg: #113330;
+  --leave-rose: #f472b6;
+  --leave-rose-bg: #3a1830;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * {
@@ -102,8 +193,21 @@ select {
 }
 
 .app-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: var(--text-lg);
   font-weight: 700;
+}
+
+.app-logo {
+  flex: none;
+  border-radius: 5px;
+}
+
+.app-title-text {
+  display: flex;
+  align-items: baseline;
 }
 
 .app-title small {
@@ -125,6 +229,7 @@ select {
   font-size: 15px;
   color: var(--color-text-muted);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .week-nav {
@@ -204,6 +309,18 @@ select {
 
 .dot.other {
   background: var(--leave-other);
+}
+
+.dot.green {
+  background: var(--leave-green);
+}
+
+.dot.teal {
+  background: var(--leave-teal);
+}
+
+.dot.rose {
+  background: var(--leave-rose);
 }
 
 /* Week grid — CSS Grid rather than a <table>. Table semantics (row/column
@@ -307,6 +424,21 @@ select {
 .chip.other {
   background: var(--leave-other-bg);
   color: var(--leave-other);
+}
+
+.chip.green {
+  background: var(--leave-green-bg);
+  color: var(--leave-green);
+}
+
+.chip.teal {
+  background: var(--leave-teal-bg);
+  color: var(--leave-teal);
+}
+
+.chip.rose {
+  background: var(--leave-rose-bg);
+  color: var(--leave-rose);
 }
 
 .empty-week {
@@ -501,6 +633,24 @@ select {
   background: var(--leave-other-bg);
 }
 
+.type-pick button.sel.green {
+  border-color: var(--leave-green);
+  color: var(--leave-green);
+  background: var(--leave-green-bg);
+}
+
+.type-pick button.sel.teal {
+  border-color: var(--leave-teal);
+  color: var(--leave-teal);
+  background: var(--leave-teal-bg);
+}
+
+.type-pick button.sel.rose {
+  border-color: var(--leave-rose);
+  color: var(--leave-rose);
+  background: var(--leave-rose-bg);
+}
+
 .sheet-actions {
   display: flex;
   gap: 10px;
@@ -536,6 +686,32 @@ select {
   background: var(--color-surface-alt);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
+}
+
+.btn.danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.btn.danger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn.small {
+  flex: none;
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+
+.btn.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 .form-error {
@@ -758,4 +934,240 @@ select {
 .type-tag.other {
   background: var(--leave-other-bg);
   color: var(--leave-other);
+}
+
+.type-tag.green {
+  background: var(--leave-green-bg);
+  color: var(--leave-green);
+}
+
+.type-tag.teal {
+  background: var(--leave-teal-bg);
+  color: var(--leave-teal);
+}
+
+.type-tag.rose {
+  background: var(--leave-rose-bg);
+  color: var(--leave-rose);
+}
+
+/* Settings — leave-type management */
+
+.page-title {
+  margin: 14px 14px 4px;
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 10px 14px 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.back-button:hover {
+  color: var(--color-primary);
+}
+
+.back-button span {
+  font-size: 17px;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.settings-row {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+}
+
+.settings-row-item {
+  position: relative;
+}
+
+.settings-row-item .settings-row {
+  padding-left: 38px;
+}
+
+.drag-handle {
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-text-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--color-text-muted);
+}
+
+.settings-list > .dragging {
+  opacity: 0.55;
+}
+
+/* For a .settings-row used outside .settings-list (which otherwise supplies
+   the surrounding margin via its own padding). */
+.settings-standalone-row {
+  margin: 4px 14px 14px;
+}
+
+.settings-row-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-row-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-label-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.settings-label-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.settings-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.color-pick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.swatch:hover {
+  border-color: var(--color-border-strong);
+}
+
+.swatch.sel {
+  border-color: var(--color-text);
+}
+
+.settings-add-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - 28px);
+  margin: 4px 14px 14px;
+  padding: 12px;
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-add-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.settings-add-toggle .plus {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.settings-add-form {
+  margin: 4px 14px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-add-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-add-form-head h3 {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+/* Settings — display/theme */
+
+.theme-pick {
+  display: flex;
+  gap: 8px;
+}
+
+.theme-pick button {
+  flex: 1;
+  padding: 9px 4px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-pick button.sel {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }

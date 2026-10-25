@@ -1,14 +1,14 @@
 import AppHeader from "./AppHeader";
-import BottomNav from "./BottomNav";
+import BottomNav, { type ActiveScreen } from "./BottomNav";
 
 export default function NotConfiguredScreen({
   active,
 }: {
-  active: "table" | "overview";
+  active: ActiveScreen;
 }) {
   return (
     <div className="app-shell">
-      <AppHeader />
+      <AppHeader showSettingsLink={active !== "settings"} />
       <div className="setup-notice">
         Supabase עוד לא מחובר. הוסיפו <code>NEXT_PUBLIC_SUPABASE_URL</code> ו-
         <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> לקובץ <code>.env.local</code>,

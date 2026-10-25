@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-export default function BottomNav({ active }: { active: "table" | "overview" }) {
+export type ActiveScreen = "table" | "overview" | "settings";
+
+export default function BottomNav({ active }: { active: ActiveScreen }) {
   return (
     <nav className="tabbar">
       <Link href="/" className={active === "table" ? "active" : ""}>

@@ -18,7 +18,7 @@ create table if not exists leave_types (
 -- app/globals.css (and this list) together, in the same change.
 alter table leave_types drop constraint if exists leave_types_color_key_check;
 alter table leave_types add constraint leave_types_color_key_check
-  check (color_key in ('vacation', 'medical', 'other'));
+  check (color_key in ('vacation', 'medical', 'other', 'green', 'teal', 'rose'));
 
 create table if not exists leave_requests (
   id uuid primary key default gen_random_uuid(),
@@ -33,8 +33,9 @@ create table if not exists leave_requests (
 create index if not exists leave_requests_date_range_idx
   on leave_requests (start_date, end_date);
 
--- Seed the two leave types confirmed so far (sketch-findings-mipo: more are
--- expected later — add rows here or build a settings screen when that's needed).
+-- Seed the two leave types confirmed so far. More can now be added/edited/
+-- removed from the app itself at /settings — this insert only matters for a
+-- fresh database.
 insert into leave_types (label_he, color_key, sort_order)
 values
   ('חופשה שנתית', 'vacation', 1),

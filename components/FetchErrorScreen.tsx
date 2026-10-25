@@ -1,14 +1,14 @@
 import AppHeader from "./AppHeader";
-import BottomNav from "./BottomNav";
+import BottomNav, { type ActiveScreen } from "./BottomNav";
 
 export default function FetchErrorScreen({
   active,
 }: {
-  active: "table" | "overview";
+  active: ActiveScreen;
 }) {
   return (
     <div className="app-shell">
-      <AppHeader />
+      <AppHeader showSettingsLink={active !== "settings"} />
       <div className="setup-notice">
         שגיאה בטעינת הנתונים מסופאבייס. נסו לרענן את העמוד; אם זה חוזר, בדקו
         את חיבור הרשת ואת מדיניות ה-RLS בפרויקט.

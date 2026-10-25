@@ -32,7 +32,7 @@ function RequestForm({
 
   return (
     <>
-      <h3>בקשת חופשה חדשה</h3>
+      <h3>בקשת יציאה חדשה</h3>
       {state.error && <div className="form-error">{state.error}</div>}
       <form action={formAction}>
         <input type="hidden" name="leave_type_id" value={selectedType} />
