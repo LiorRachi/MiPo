@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["/Users/admin/Documents/projects/MiPo/.claude/sketch-server.js"],
       "port": 4173
+    },
+    {
+      "name": "mipo-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
     }
   ]
 }
