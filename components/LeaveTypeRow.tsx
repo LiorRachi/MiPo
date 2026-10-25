@@ -64,6 +64,14 @@ export default function LeaveTypeRow({
             className="settings-label-input"
             aria-label="שם סוג החופשה"
           />
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              name="weekend_applicable"
+              defaultChecked={leaveType.weekend_applicable}
+            />
+            חל גם בסופ&quot;ש (ו׳–ש׳)
+          </label>
           <div className="settings-row-bottom">
             <div className="color-pick">
               {LEAVE_TYPE_COLORS.map((c) => (

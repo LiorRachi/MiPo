@@ -81,6 +81,15 @@ function RequestForm({
             required
           />
         </div>
+        <div className="field">
+          <label htmlFor="reason">סיבה (אופציונלי)</label>
+          <textarea
+            id="reason"
+            name="reason"
+            placeholder="למה צריך/ה לצאת"
+            rows={2}
+          />
+        </div>
         <div className="sheet-actions">
           <button type="button" className="btn ghost" onClick={onCancel}>
             ביטול

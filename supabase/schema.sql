@@ -20,6 +20,11 @@ alter table leave_types drop constraint if exists leave_types_color_key_check;
 alter table leave_types add constraint leave_types_color_key_check
   check (color_key in ('vacation', 'medical', 'other', 'green', 'teal', 'rose'));
 
+-- Whether a request of this type should still show on the Friday/Saturday
+-- columns of the week-grid (e.g. reserve duty applies every day; office-only
+-- errands don't). Defaults to true so existing types keep today's behavior.
+alter table leave_types add column if not exists weekend_applicable boolean not null default true;
+
 create table if not exists leave_requests (
   id uuid primary key default gen_random_uuid(),
   employee_name text not null,
@@ -29,6 +34,34 @@ create table if not exists leave_requests (
   created_at timestamptz not null default now(),
   constraint end_after_start check (end_date >= start_date)
 );
+
+-- Free-text reason for the request (optional) and an approval workflow.
+-- v1 has one "admin" user with full read/write access to everything,
+-- including setting status — this is just the data shape for that workflow,
+-- not permission-gated yet. Once real per-user permissions exist, that's
+-- enforced elsewhere (RLS policies / app logic), not by changing this schema.
+alter table leave_requests add column if not exists reason text;
+
+-- One-time migration: on a database that doesn't have `status` yet, requests
+-- created before the approval workflow existed were implicitly "approved" (the
+-- week-grid showed everything unconditionally). Back those rows over to
+-- 'approved' so they don't vanish from the week-grid the moment this ships —
+-- but only on that first add, so re-running this script never resets a real
+-- pending/denied decision someone has since made.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_name = 'leave_requests' and column_name = 'status'
+  ) then
+    alter table leave_requests add column status text not null default 'pending';
+    update leave_requests set status = 'approved';
+  end if;
+end $$;
+
+alter table leave_requests drop constraint if exists leave_requests_status_check;
+alter table leave_requests add constraint leave_requests_status_check
+  check (status in ('pending', 'approved', 'denied'));
 
 create index if not exists leave_requests_date_range_idx
   on leave_requests (start_date, end_date);

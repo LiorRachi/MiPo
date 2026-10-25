@@ -1,17 +1,17 @@
 import Link from "next/link";
 
-export type ActiveScreen = "table" | "overview" | "settings";
+export type ActiveScreen = "table" | "requests" | "settings";
 
 export default function BottomNav({ active }: { active: ActiveScreen }) {
   return (
     <nav className="tabbar">
       <Link href="/" className={active === "table" ? "active" : ""}>
         <span className="ic">▦</span>
-        טבלה
+        לוח
       </Link>
-      <Link href="/overview" className={active === "overview" ? "active" : ""}>
+      <Link href="/requests" className={active === "requests" ? "active" : ""}>
         <span className="ic">◉</span>
-        סקירה
+        בקשות
       </Link>
     </nav>
   );

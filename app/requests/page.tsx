@@ -8,7 +8,11 @@ import MonthCalendar, {
 } from "@/components/MonthCalendar";
 import NotConfiguredScreen from "@/components/NotConfiguredScreen";
 import { supabaseConfigured } from "@/lib/supabase";
-import { fetchLeaveTypes, fetchRequestsInRange } from "@/lib/leave";
+import {
+  fetchLeaveTypes,
+  fetchRequestsInRange,
+  isVisibleOnDay,
+} from "@/lib/leave";
 import {
   addMonths,
   formatDayLabelHe,
@@ -40,7 +44,7 @@ export default async function Overview({
   const monthKey = toISOMonth(month);
 
   if (!supabaseConfigured) {
-    return <NotConfiguredScreen active="overview" />;
+    return <NotConfiguredScreen active="requests" />;
   }
 
   let leaveTypes;
@@ -51,7 +55,7 @@ export default async function Overview({
       fetchRequestsInRange(rangeStart, rangeEnd),
     ]);
   } catch {
-    return <FetchErrorScreen active="overview" />;
+    return <FetchErrorScreen active="requests" />;
   }
 
   const leaveTypeById = new Map(leaveTypes.map((lt) => [lt.id, lt]));
@@ -60,7 +64,12 @@ export default async function Overview({
   for (const d of days) {
     const iso = toISODate(d);
     entriesByDay[iso] = requests
-      .filter((r) => r.start_date <= iso && r.end_date >= iso)
+      .filter((r) => {
+        if (r.start_date > iso || r.end_date < iso) return false;
+        const lt = leaveTypeById.get(r.leave_type_id);
+        if (lt && !isVisibleOnDay(lt, d)) return false;
+        return true;
+      })
       .map((r) => {
         const lt = leaveTypeById.get(r.leave_type_id);
         return {
@@ -68,8 +77,11 @@ export default async function Overview({
           employee_name: r.employee_name,
           label_he: lt?.label_he ?? "",
           color_key: lt?.color_key ?? "other",
+          reason: r.reason,
+          status: r.status,
         };
-      });
+      })
+      .sort((a, b) => a.employee_name.localeCompare(b.employee_name, "he"));
   }
 
   const calDays: CalDay[] = days.map((d) => {
@@ -100,8 +112,8 @@ export default async function Overview({
         <MonthCalendar
           key={monthKey}
           monthLabel={formatMonthHe(month)}
-          prevMonthHref={`/overview?month=${prevMonth}`}
-          nextMonthHref={`/overview?month=${nextMonth}`}
+          prevMonthHref={`/requests?month=${prevMonth}`}
+          nextMonthHref={`/requests?month=${nextMonth}`}
           days={calDays}
           entriesByDay={entriesByDay}
           initialSelected={initialSelected}
@@ -110,7 +122,7 @@ export default async function Overview({
       )}
 
       {leaveTypes.length > 0 && <AddRequestSheet leaveTypes={leaveTypes} />}
-      <BottomNav active="overview" />
+      <BottomNav active="requests" />
     </div>
   );
 }

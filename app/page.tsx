@@ -5,7 +5,11 @@ import BottomNav from "@/components/BottomNav";
 import FetchErrorScreen from "@/components/FetchErrorScreen";
 import NotConfiguredScreen from "@/components/NotConfiguredScreen";
 import { supabaseConfigured } from "@/lib/supabase";
-import { fetchLeaveTypes, fetchRequestsInRange } from "@/lib/leave";
+import {
+  fetchLeaveTypes,
+  fetchRequestsInRange,
+  isVisibleOnDay,
+} from "@/lib/leave";
 import {
   addDays,
   formatDayLabelHe,
@@ -18,6 +22,7 @@ import {
   weekDays,
   weekStart,
 } from "@/lib/date";
+import type { LeaveType } from "@/lib/leave";
 
 export default async function Home({
   searchParams,
@@ -51,13 +56,15 @@ export default async function Home({
     return <FetchErrorScreen active="table" />;
   }
 
-  const cell = (leaveTypeId: string, day: Date) => {
+  const cell = (lt: LeaveType, day: Date) => {
+    if (!isVisibleOnDay(lt, day)) return [];
     const iso = toISODate(day);
     return requests.filter(
       (r) =>
-        r.leave_type_id === leaveTypeId &&
+        r.leave_type_id === lt.id &&
         r.start_date <= iso &&
-        r.end_date >= iso,
+        r.end_date >= iso &&
+        r.status === "approved",
     );
   };
 
@@ -120,7 +127,7 @@ export default async function Home({
                 style={{ display: "contents" }}
               >
                 {days.map((d) => {
-                  const people = cell(lt.id, d);
+                  const people = cell(lt, d);
                   const names = people.map((p) => p.employee_name).join(", ");
                   return (
                     <div

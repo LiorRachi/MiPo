@@ -12,7 +12,7 @@ export type LeaveTypeActionState = {
 function revalidateLeaveTypeConsumers() {
   revalidatePath("/settings");
   revalidatePath("/");
-  revalidatePath("/overview");
+  revalidatePath("/requests");
 }
 
 export async function addLeaveType(
@@ -26,6 +26,7 @@ export async function addLeaveType(
   const labelHe = String(formData.get("label_he") ?? "").trim();
   const colorKey = String(formData.get("color_key") ?? "").trim();
   const sortOrder = Number(formData.get("sort_order") ?? 0);
+  const weekendApplicable = formData.get("weekend_applicable") === "on";
 
   if (!labelHe) return { error: "נא להזין שם לסוג החופשה" };
   if (!isValidColorKey(colorKey)) return { error: "נא לבחור צבע" };
@@ -34,6 +35,7 @@ export async function addLeaveType(
     label_he: labelHe,
     color_key: colorKey,
     sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+    weekend_applicable: weekendApplicable,
   });
 
   if (error) return { error: error.message };
@@ -53,6 +55,7 @@ export async function updateLeaveType(
   const id = String(formData.get("id") ?? "").trim();
   const labelHe = String(formData.get("label_he") ?? "").trim();
   const colorKey = String(formData.get("color_key") ?? "").trim();
+  const weekendApplicable = formData.get("weekend_applicable") === "on";
 
   if (!id) return { error: "שגיאה — חסר מזהה" };
   if (!labelHe) return { error: "נא להזין שם לסוג החופשה" };
@@ -60,7 +63,11 @@ export async function updateLeaveType(
 
   const { error } = await supabase
     .from("leave_types")
-    .update({ label_he: labelHe, color_key: colorKey })
+    .update({
+      label_he: labelHe,
+      color_key: colorKey,
+      weekend_applicable: weekendApplicable,
+    })
     .eq("id", id);
 
   if (error) return { error: error.message };

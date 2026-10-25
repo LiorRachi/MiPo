@@ -78,6 +78,10 @@ export default function AddLeaveTypeForm({
           ))}
         </div>
       </div>
+      <label className="checkbox-field">
+        <input type="checkbox" name="weekend_applicable" defaultChecked />
+        חל גם בסופ&quot;ש (ו׳–ש׳)
+      </label>
       <button type="submit" className="btn primary" disabled={pending}>
         {pending ? "מוסיף..." : "הוספה"}
       </button>

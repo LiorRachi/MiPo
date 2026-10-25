@@ -84,6 +84,12 @@ export function hebrewWeekdayLetter(d: Date): string {
   return HEBREW_WEEKDAYS[d.getDay()];
 }
 
+/** Israeli weekend: Friday (5) and Saturday (6). */
+export function isWeekend(d: Date): boolean {
+  const day = d.getDay();
+  return day === 5 || day === 6;
+}
+
 export function isSameDay(a: Date, b: Date): boolean {
   return toISODate(a) === toISODate(b);
 }

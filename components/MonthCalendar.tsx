@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { LeaveType } from "@/lib/leave";
+import type { LeaveRequestStatus, LeaveType } from "@/lib/leave";
+import RequestRow from "./RequestRow";
 
 const WEEKDAY_HEADERS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 const MAX_VISIBLE_DOTS = 3;
@@ -20,6 +21,8 @@ export type DayEntry = {
   employee_name: string;
   label_he: string;
   color_key: string;
+  reason: string | null;
+  status: LeaveRequestStatus;
 };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -132,13 +135,15 @@ export default function MonthCalendar({
             <div className="empty-state">אין היעדרויות 🎉</div>
           ) : (
             selectedEntries.map((e) => (
-              <div key={e.id} className="req-row">
-                <div className="who">
-                  <span className={`dot ${e.color_key}`} />
-                  {e.employee_name}
-                </div>
-                <span className={`type-tag ${e.color_key}`}>{e.label_he}</span>
-              </div>
+              <RequestRow
+                key={e.id}
+                id={e.id}
+                employeeName={e.employee_name}
+                labelHe={e.label_he}
+                colorKey={e.color_key}
+                reason={e.reason}
+                status={e.status}
+              />
             ))
           )}
         </div>

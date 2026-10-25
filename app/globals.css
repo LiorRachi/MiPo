@@ -581,16 +581,24 @@ select {
   font-weight: 600;
 }
 
-.field input {
+.field input,
+.field textarea {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: 13.5px;
+  font-family: inherit;
+  color: var(--color-text);
   background: var(--color-surface);
 }
 
-.field input:focus {
+.field textarea {
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
   outline: none;
   border-color: var(--color-primary);
 }
@@ -884,6 +892,9 @@ select {
 .day-detail-list {
   max-height: 228px; /* ~5 rows, deliberately short of 6 so the next row peeks in as a scroll hint */
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
 .day-detail h4 {
@@ -892,18 +903,25 @@ select {
 }
 
 .req-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 9px 12px;
-  margin-bottom: 7px;
 }
 
-.req-row:last-child {
-  margin-bottom: 0;
+.req-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
 }
 
 .req-row .who {
@@ -912,6 +930,78 @@ select {
   gap: 8px;
   font-size: 13.5px;
   font-weight: 600;
+}
+
+.req-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.status-indicator.approved {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.status-indicator.denied {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.req-row-expand {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.req-reason {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.req-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.status-btn {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.status-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.status-btn.approve.active {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.status-btn.deny.active {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .type-tag {
@@ -1075,6 +1165,23 @@ select {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.checkbox-field input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .swatch {
