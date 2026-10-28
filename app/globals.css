@@ -499,10 +499,12 @@ select {
   left: calc(50% - 240px + 18px);
   width: 52px;
   height: 52px;
+  padding: 0;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
   font-size: 24px;
+  line-height: 1;
   border: none;
   box-shadow: var(--shadow-lg);
   cursor: pointer;
@@ -562,6 +564,24 @@ select {
 
 .sheet-backdrop.show .sheet {
   transform: translateY(0);
+}
+
+.sheet-handle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 22px;
+  margin: -6px 0 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet-handle::before {
+  content: "";
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
 }
 
 .sheet h3 {
@@ -736,13 +756,39 @@ select {
   bottom: calc(var(--tabbar-height) + 80px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--color-text);
+  /* Always a dark pill with white text, in both themes — not var(--color-text),
+     which flips to a light color in dark mode and would leave the hardcoded
+     white text unreadable against it. */
+  background: #1a1d23;
   color: #fff;
   font-size: 12.5px;
   padding: 9px 16px;
   border-radius: var(--radius-full);
   z-index: 60;
   white-space: nowrap;
+}
+
+.toast-undo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toast-undo button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.toast-error {
+  bottom: calc(var(--tabbar-height) + 136px);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .setup-notice {
@@ -903,25 +949,54 @@ select {
 }
 
 .req-row {
-  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 9px 12px;
+  overflow: hidden;
+}
+
+.req-row-swipe-area {
+  position: relative;
+}
+
+.req-row-swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.req-row-swipe-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  transition: opacity 0.1s ease;
+}
+
+.req-row-swipe-action.edit {
+  background: var(--color-primary);
 }
 
 .req-row-top {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  background: none;
+  background: var(--color-surface);
   border: none;
-  padding: 0;
+  padding: 9px 12px;
   margin: 0;
   font: inherit;
   color: inherit;
   text-align: inherit;
   cursor: pointer;
+  touch-action: pan-y;
 }
 
 .req-row .who {
@@ -961,7 +1036,7 @@ select {
 
 .req-row-expand {
   margin-top: 10px;
-  padding-top: 10px;
+  padding: 10px 12px 9px;
   border-top: 1px solid var(--color-border);
 }
 
@@ -974,6 +1049,7 @@ select {
 .req-row-actions {
   display: flex;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .status-btn {

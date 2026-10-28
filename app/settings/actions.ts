@@ -107,6 +107,15 @@ export async function deleteLeaveType(
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "שגיאה — חסר מזהה" };
 
+  const { error: purgeError } = await
+    supabase
+      .from("leave_requests")
+      .delete()
+      .eq("leave_type_id", id)
+      .not("deleted_at", "is", null);
+
+  if (purgeError) return { error: purgeError.message }
+
   const { error } = await supabase.from("leave_types").delete().eq("id", id);
 
   if (error) {

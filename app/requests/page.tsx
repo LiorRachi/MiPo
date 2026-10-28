@@ -1,12 +1,9 @@
-import AddRequestSheet from "@/components/AddRequestSheet";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import FetchErrorScreen from "@/components/FetchErrorScreen";
-import MonthCalendar, {
-  type CalDay,
-  type DayEntry,
-} from "@/components/MonthCalendar";
+import type { CalDay, DayEntry } from "@/components/MonthCalendar";
 import NotConfiguredScreen from "@/components/NotConfiguredScreen";
+import RequestsCalendar from "@/components/RequestsCalendar";
 import { supabaseConfigured } from "@/lib/supabase";
 import {
   fetchLeaveTypes,
@@ -26,7 +23,7 @@ import {
   todayInIsrael,
 } from "@/lib/date";
 
-export default async function Overview({
+export default async function Requests({
   searchParams,
 }: {
   searchParams: Promise<{ month?: string }>;
@@ -79,6 +76,8 @@ export default async function Overview({
           color_key: lt?.color_key ?? "other",
           reason: r.reason,
           status: r.status,
+          leave_type_id: r.leave_type_id,
+          date: r.start_date,
         };
       })
       .sort((a, b) => a.employee_name.localeCompare(b.employee_name, "he"));
@@ -106,10 +105,11 @@ export default async function Overview({
 
       {leaveTypes.length === 0 ? (
         <div className="empty-week">
-          אין עדיין סוגי חופשה. הוסיפו שורה ל-<code>leave_types</code> בסופאבייס.
+          אין עדיין סוגי חופשה. הוסיפו שורה ל-<code>leave_types</code>{" "}
+          בסופאבייס.
         </div>
       ) : (
-        <MonthCalendar
+        <RequestsCalendar
           key={monthKey}
           monthLabel={formatMonthHe(month)}
           prevMonthHref={`/requests?month=${prevMonth}`}
@@ -121,7 +121,6 @@ export default async function Overview({
         />
       )}
 
-      {leaveTypes.length > 0 && <AddRequestSheet leaveTypes={leaveTypes} />}
       <BottomNav active="requests" />
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import type { LeaveRequestStatus, LeaveType } from "@/lib/leave";
 import RequestRow from "./RequestRow";
 
@@ -23,6 +22,8 @@ export type DayEntry = {
   color_key: string;
   reason: string | null;
   status: LeaveRequestStatus;
+  leave_type_id: string;
+  date: string;
 };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -39,18 +40,21 @@ export default function MonthCalendar({
   nextMonthHref,
   days,
   entriesByDay,
-  initialSelected,
+  selected,
+  onSelect,
   leaveTypes,
+  onRequestDeleted,
 }: {
   monthLabel: string;
   prevMonthHref: string;
   nextMonthHref: string;
   days: CalDay[];
   entriesByDay: Record<string, DayEntry[]>;
-  initialSelected: string;
+  selected: string;
+  onSelect: (iso: string) => void;
   leaveTypes: LeaveType[];
+  onRequestDeleted?: (id: string, employeeName: string) => void;
 }) {
-  const [selected, setSelected] = useState(initialSelected);
   const selectedDay = days.find((d) => d.iso === selected);
   const selectedEntries = entriesByDay[selected] ?? [];
   const weeks = chunk(days, 7);
@@ -94,7 +98,7 @@ export default function MonthCalendar({
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    onClick={() => setSelected(d.iso)}
+                    onClick={() => onSelect(d.iso)}
                     aria-label={`${d.label}${dots.length > 0 ? `, ${dots.length} בקשות` : ""}`}
                     aria-current={d.isToday ? "date" : undefined}
                     aria-selected={selected === d.iso}
@@ -143,6 +147,10 @@ export default function MonthCalendar({
                 colorKey={e.color_key}
                 reason={e.reason}
                 status={e.status}
+                leaveTypeId={e.leave_type_id}
+                date={e.date}
+                leaveTypes={leaveTypes}
+                onDeleted={onRequestDeleted}
               />
             ))
           )}

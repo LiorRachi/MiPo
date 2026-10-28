@@ -41,7 +41,13 @@ export default function LeaveTypeList({
     e: React.PointerEvent<HTMLButtonElement>,
   ) {
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Capture just keeps events flowing if the finger leaves the
+      // handle's bounds — if it's unavailable, keep tracking anyway
+      // (matches the same defensive handling in lib/hooks/usePointerDrag.ts).
+    }
     draggingId.current = id;
     setActiveId(id);
   }

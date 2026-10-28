@@ -48,6 +48,7 @@ export async function fetchRequestsInRange(
   const { data, error } = await supabase
     .from("leave_requests")
     .select("id, employee_name, leave_type_id, start_date, end_date, reason, status")
+    .is("deleted_at", null)
     .lte("start_date", rangeEnd)
     .gte("end_date", rangeStart)
     .order("created_at", { ascending: true });

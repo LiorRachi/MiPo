@@ -66,14 +66,10 @@ alter table leave_requests add constraint leave_requests_status_check
 create index if not exists leave_requests_date_range_idx
   on leave_requests (start_date, end_date);
 
--- Seed the two leave types confirmed so far. More can now be added/edited/
--- removed from the app itself at /settings — this insert only matters for a
--- fresh database.
-insert into leave_types (label_he, color_key, sort_order)
-values
-  ('חופשה שנתית', 'vacation', 1),
-  ('הפניה רפואית', 'medical', 2)
-on conflict do nothing;
+-- Soft delete: deleting a request sets this instead of removing the row, so
+-- a delete can be undone with a short "בטל" toast. Rows with a non-null
+-- deleted_at are excluded from every fetch.
+alter table leave_requests add column if not exists deleted_at timestamptz;
 
 -- RLS: enabled with an explicit "anon can do everything" policy. There's no
 -- auth yet (v1 is single-user, talking to Supabase directly with the anon
