@@ -16,6 +16,9 @@ export default function RequestsCalendar({
   entriesByDay,
   initialSelected,
   leaveTypes,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   monthLabel: string;
   prevMonthHref: string;
@@ -24,6 +27,9 @@ export default function RequestsCalendar({
   entriesByDay: Record<string, DayEntry[]>;
   initialSelected: string;
   leaveTypes: LeaveType[];
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const [selected, setSelected] = useState(initialSelected);
 
@@ -45,8 +51,17 @@ export default function RequestsCalendar({
         onSelect={setSelected}
         leaveTypes={leaveTypes}
         onRequestDeleted={notifyDeleted}
+        isAdmin={isAdmin}
+        employeeNames={employeeNames}
+        currentUserDisplayName={currentUserDisplayName}
       />
-      <AddRequestSheet leaveTypes={leaveTypes} defaultDate={selected} />
+      <AddRequestSheet
+        leaveTypes={leaveTypes}
+        defaultDate={selected}
+        isAdmin={isAdmin}
+        employeeNames={employeeNames}
+        currentUserDisplayName={currentUserDisplayName}
+      />
 
       {current && (
         <div className="toast toast-undo">

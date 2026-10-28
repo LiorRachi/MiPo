@@ -1,5 +1,5 @@
--- MiPo core schema (v1: no auth, single user — see sketch-findings-mipo skill
--- for the design decisions this implements).
+-- MiPo core schema — see sketch-findings-mipo skill for the design decisions
+-- this implements.
 --
 -- Run this once in your Supabase project's SQL Editor
 -- (Project → SQL Editor → New query → paste → Run).
@@ -36,10 +36,10 @@ create table if not exists leave_requests (
 );
 
 -- Free-text reason for the request (optional) and an approval workflow.
--- v1 has one "admin" user with full read/write access to everything,
--- including setting status — this is just the data shape for that workflow,
--- not permission-gated yet. Once real per-user permissions exist, that's
--- enforced elsewhere (RLS policies / app logic), not by changing this schema.
+-- Changing status is admin-only (enforced in app/actions.ts via
+-- requireAdmin(), and backstopped below by enforce_status_admin_only() since
+-- RLS alone can't gate a single column) — see profiles.role below for the
+-- admin/employee distinction this and other admin-only actions check.
 alter table leave_requests add column if not exists reason text;
 
 -- One-time migration: on a database that doesn't have `status` yet, requests
@@ -71,26 +71,158 @@ create index if not exists leave_requests_date_range_idx
 -- deleted_at are excluded from every fetch.
 alter table leave_requests add column if not exists deleted_at timestamptz;
 
--- RLS: enabled with an explicit "anon can do everything" policy. There's no
--- auth yet (v1 is single-user, talking to Supabase directly with the anon
--- key), so this behaves the same as RLS-off today — but it's visible/auditable
--- instead of an implicit gap, and it's the right shape to tighten once real
--- auth exists: swap `using (true)` for a check against the authenticated
--- user before deploying anywhere reachable by others.
+-- Login accounts (admin-created only — see README, there is no public
+-- signup). One row per auth.users row, holding the display name and
+-- admin/employee role the app needs beyond what Supabase Auth itself stores.
+-- Deleting the auth user (via the admin API) cascades here automatically.
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  display_name text not null,
+  role text not null default 'employee',
+  created_at timestamptz not null default now()
+);
+
+alter table profiles drop constraint if exists profiles_role_check;
+alter table profiles add constraint profiles_role_check
+  check (role in ('admin', 'employee'));
+
+-- The stable identity a request's ownership/visibility checks key off of.
+-- employee_name stays as a denormalized display label (many screens read it
+-- directly) but is free text — two people can share a display name, and an
+-- admin renaming someone would silently orphan their past requests from any
+-- name-based filter. profile_id is nullable: a request from before this
+-- column existed, or a legacy free-text name with no matching profile, keeps
+-- working (visible to admins) but isn't owned by anyone in particular.
+alter table leave_requests add column if not exists profile_id uuid references profiles(id) on delete set null;
+
+-- One-time best-effort backfill: link existing rows to a profile when their
+-- employee_name matches exactly one profile's display_name. Only runs for
+-- rows that don't have a profile_id yet, so re-running this script never
+-- undoes a manual reassignment.
+update leave_requests lr
+set profile_id = p.id
+from profiles p
+where lr.profile_id is null
+  and lr.employee_name = p.display_name
+  and (select count(*) from profiles p2 where p2.display_name = lr.employee_name) = 1;
+
+create index if not exists leave_requests_profile_id_idx
+  on leave_requests (profile_id);
+
+-- security definer + fixed search_path: lets RLS policies below check the
+-- caller's role without each policy repeating the profiles subquery, and
+-- without being redefinable by a search_path trick from a non-superuser role.
+create or replace function is_admin()
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from profiles where id = auth.uid() and role = 'admin'
+  );
+$$;
+
+alter table profiles enable row level security;
+
+-- The only client-side (RLS-governed) access profiles needs: a logged-in
+-- user reading their own role, to decide whether to show them Settings (see
+-- lib/auth.ts). Listing every account and all writes go through the
+-- service-role client from Settings' server actions instead (see
+-- lib/supabase/admin.ts) — gated by that same role check, not by RLS — so no
+-- broader policy exists here on purpose.
+drop policy if exists "users can read own profile" on profiles;
+create policy "users can read own profile" on profiles
+  for select
+  to authenticated
+  using (id = auth.uid());
+
+-- RLS: now that real login exists, every policy below requires an
+-- authenticated session — swapped from the old "anon full access" v1
+-- policies now that there's something to check against.
+--
+-- The app layer (app/actions.ts, lib/leave.ts) already enforces who can read
+-- or write what, but that only holds for requests that go through our own
+-- Server Actions — a logged-in user's own Supabase session can call the
+-- REST/JS API directly with their own valid token, bypassing every app-layer
+-- check. These policies are the real enforcement; the app-layer checks are
+-- just where the user-facing error messages and UX live.
 
 alter table leave_types enable row level security;
 alter table leave_requests enable row level security;
 
 drop policy if exists "anon full access (v1, no auth yet)" on leave_types;
-create policy "anon full access (v1, no auth yet)" on leave_types
+drop policy if exists "authenticated full access" on leave_types;
+
+-- Everyone needs to read leave types (the week-grid's legend/rows), but only
+-- an admin manages the list itself (Settings → leave types).
+drop policy if exists "read all leave types" on leave_types;
+create policy "read all leave types" on leave_types
+  for select
+  to authenticated
+  using (true);
+
+drop policy if exists "admin write leave types" on leave_types;
+create policy "admin write leave types" on leave_types
   for all
-  to anon
-  using (true)
-  with check (true);
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
 
 drop policy if exists "anon full access (v1, no auth yet)" on leave_requests;
-create policy "anon full access (v1, no auth yet)" on leave_requests
-  for all
-  to anon
-  using (true)
-  with check (true);
+drop policy if exists "authenticated full access" on leave_requests;
+
+-- A non-admin may only see/insert/update their own requests (by profile_id,
+-- not the spoofable employee_name text); an admin sees and manages everyone's.
+-- Status changes are additionally locked down below by a trigger, since RLS
+-- can't gate one column differently from the rest of the same update.
+drop policy if exists "own or admin read" on leave_requests;
+create policy "own or admin read" on leave_requests
+  for select
+  to authenticated
+  using (profile_id = auth.uid() or is_admin());
+
+drop policy if exists "own or admin insert" on leave_requests;
+create policy "own or admin insert" on leave_requests
+  for insert
+  to authenticated
+  with check (profile_id = auth.uid() or is_admin());
+
+drop policy if exists "own or admin update" on leave_requests;
+create policy "own or admin update" on leave_requests
+  for update
+  to authenticated
+  using (profile_id = auth.uid() or is_admin())
+  with check (profile_id = auth.uid() or is_admin());
+
+drop policy if exists "admin delete" on leave_requests;
+create policy "admin delete" on leave_requests
+  for delete
+  to authenticated
+  using (is_admin());
+
+-- Backstop for setLeaveRequestStatus's requireAdmin() check: without this, a
+-- non-admin's own valid session could call the REST API directly and set
+-- their own request to 'approved', since the update policy above only checks
+-- ownership, not which columns changed.
+create or replace function enforce_status_admin_only()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status is distinct from old.status and not is_admin() then
+    raise exception 'only an admin can change a request''s status';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_enforce_status_admin_only on leave_requests;
+create trigger trg_enforce_status_admin_only
+  before update on leave_requests
+  for each row
+  execute function enforce_status_admin_only();

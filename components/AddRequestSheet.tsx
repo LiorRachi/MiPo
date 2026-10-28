@@ -8,9 +8,15 @@ import RequestSheet from "./RequestSheet";
 export default function AddRequestSheet({
   leaveTypes,
   defaultDate,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   leaveTypes: LeaveType[];
   defaultDate?: string;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useAutoDismiss<string>(1800);
@@ -41,6 +47,9 @@ export default function AddRequestSheet({
         onSuccess={handleSuccess}
         leaveTypes={leaveTypes}
         defaultDate={defaultDate}
+        isAdmin={isAdmin}
+        employeeNames={employeeNames}
+        currentUserDisplayName={currentUserDisplayName}
       />
     </>
   );

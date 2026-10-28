@@ -200,6 +200,28 @@ select {
   font-weight: 700;
 }
 
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-circle {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .app-logo {
   flex: none;
   border-radius: 5px;
@@ -370,6 +392,16 @@ select {
   height: 22px;
   line-height: 22px;
   border-radius: 50%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.day-col .dn:disabled {
+  cursor: default;
 }
 
 .day-col.today .dn {
@@ -602,7 +634,8 @@ select {
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid var(--color-border);
@@ -618,9 +651,36 @@ select {
 }
 
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   outline: none;
   border-color: var(--color-primary);
+}
+
+.field .static-value {
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+}
+
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.password-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.password-field .icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
 }
 
 .type-pick {
@@ -952,6 +1012,10 @@ select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  /* Without this, a flex column with a capped height shrinks its items to
+     fit instead of overflowing/scrolling — squishing rows below their
+     natural height when there are more than fit in .day-detail-list. */
+  flex-shrink: 0;
 }
 
 .req-row-swipe-area {
@@ -1326,6 +1390,29 @@ select {
 .settings-add-form-head h3 {
   margin: 0;
   font-size: var(--text-base);
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.role-select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.role-select:disabled {
+  opacity: 0.6;
+}
+
+.login-form {
+  margin-top: 24px;
 }
 
 /* Settings — display/theme */

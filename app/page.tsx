@@ -1,13 +1,19 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import AddRequestSheet from "@/components/AddRequestSheet";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
+import CopyDayButton from "@/components/CopyDayButton";
 import FetchErrorScreen from "@/components/FetchErrorScreen";
 import NotConfiguredScreen from "@/components/NotConfiguredScreen";
-import { supabaseConfigured } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth";
+import { supabaseConfigured } from "@/lib/supabase/server";
+import { fetchAllUsers } from "@/lib/users";
 import {
+  attendanceForDay,
   fetchLeaveTypes,
   fetchRequestsInRange,
+  formatAttendanceList,
   isVisibleOnDay,
 } from "@/lib/leave";
 import {
@@ -45,13 +51,26 @@ export default async function Home({
     return <NotConfiguredScreen active="table" />;
   }
 
+  const currentUser = await getCurrentUser();
+  if (!currentUser) redirect("/login");
+  const isAdmin = currentUser.role === "admin";
+
   let leaveTypes;
   let requests;
+  let employeeNames: string[] = [];
   try {
-    [leaveTypes, requests] = await Promise.all([
+    const [fetchedLeaveTypes, fetchedRequests, profiles] = await Promise.all([
       fetchLeaveTypes(),
-      fetchRequestsInRange(rangeStart, rangeEnd),
+      fetchRequestsInRange(
+        rangeStart,
+        rangeEnd,
+        isAdmin ? undefined : currentUser.id,
+      ),
+      isAdmin ? fetchAllUsers() : Promise.resolve([]),
     ]);
+    leaveTypes = fetchedLeaveTypes;
+    requests = fetchedRequests;
+    employeeNames = profiles.map((p) => p.display_name);
   } catch {
     return <FetchErrorScreen active="table" />;
   }
@@ -70,7 +89,7 @@ export default async function Home({
 
   return (
     <div className="app-shell">
-      <AppHeader />
+      <AppHeader userDisplayName={currentUser.displayName} />
 
       <div className="week-nav">
         <Link href={`/?week=${prevWeek}`} aria-label="שבוע קודם">
@@ -114,7 +133,20 @@ export default async function Home({
                     aria-label={formatDayLabelHe(d)}
                   >
                     <span className="wd">{hebrewWeekdayLetter(d)}</span>
-                    <span className="dn">{d.getDate()}</span>
+                    {isAdmin ? (
+                      <CopyDayButton
+                        dayNumber={d.getDate()}
+                        isToday={today_}
+                        attendanceText={formatAttendanceList(
+                          attendanceForDay(leaveTypes, requests, d),
+                        )}
+                        ariaLabel={`העתקת רשימת נוכחות ל${formatDayLabelHe(d)}`}
+                      />
+                    ) : (
+                      <span className={`dn static${today_ ? " today" : ""}`}>
+                        {d.getDate()}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -152,7 +184,14 @@ export default async function Home({
         )}
       </div>
 
-      {leaveTypes.length > 0 && <AddRequestSheet leaveTypes={leaveTypes} />}
+      {leaveTypes.length > 0 && (
+        <AddRequestSheet
+          leaveTypes={leaveTypes}
+          isAdmin={isAdmin}
+          employeeNames={employeeNames}
+          currentUserDisplayName={currentUser.displayName}
+        />
+      )}
       <BottomNav active="table" />
     </div>
   );

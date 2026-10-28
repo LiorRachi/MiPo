@@ -7,6 +7,9 @@ export default function RequestFormFields({
   defaultEmployeeName,
   defaultDate,
   defaultReason,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   leaveTypes: LeaveType[];
   selectedType: string;
@@ -14,18 +17,54 @@ export default function RequestFormFields({
   defaultEmployeeName?: string;
   defaultDate: string;
   defaultReason?: string | null;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   return (
     <>
       <div className="field">
         <label htmlFor="employee_name">חייל/ת</label>
-        <input
-          id="employee_name"
-          name="employee_name"
-          type="text"
-          defaultValue={defaultEmployeeName}
-          required
-        />
+        {isAdmin ? (
+          <select
+            id="employee_name"
+            name="employee_name"
+            defaultValue={defaultEmployeeName ?? ""}
+            required
+          >
+            {/* On add, force an explicit choice instead of silently defaulting
+                to the first name in the list — `required` only blocks an
+                empty/disabled value, not a pre-selected real one. */}
+            {!defaultEmployeeName && (
+              <option value="" disabled>
+                בחר שם...
+              </option>
+            )}
+            {/* A request created before this field existed, or whose name
+                was since renamed/removed from the profiles list, can carry
+                a name with no matching option — add it so the select shows
+                it correctly instead of silently falling back to the first
+                real option (which would reassign the request on save). */}
+            {defaultEmployeeName &&
+              !employeeNames.includes(defaultEmployeeName) && (
+                <option value={defaultEmployeeName}>
+                  {defaultEmployeeName}
+                </option>
+              )}
+            {employeeNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          // Non-admins can't choose or change the name — it's always their
+          // own, derived server-side from the session (see app/actions.ts).
+          // This is display-only; nothing named employee_name submits here.
+          <div className="static-value">
+            {defaultEmployeeName ?? currentUserDisplayName}
+          </div>
+        )}
       </div>
       <div className="field">
         <label>סוג חופשה</label>

@@ -37,7 +37,10 @@ export function usePointerDrag({
 
   function reset() {
     draggingRef.current = false;
-    movedRef.current = false;
+    // Not movedRef: the browser fires a synthetic click right after
+    // pointerup, and callers (e.g. RequestRow) read movedRef in that click
+    // handler to tell a swipe from a tap. Clearing it here would always read
+    // false by then. onPointerDown already resets it for the next gesture.
     pointerIdRef.current = null;
     offsetRef.current = 0;
     setOffset(0);

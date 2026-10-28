@@ -75,6 +75,9 @@ export default function RequestRow({
   date,
   leaveTypes,
   onDeleted,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   id: string;
   employeeName: string;
@@ -86,6 +89,9 @@ export default function RequestRow({
   date: string;
   leaveTypes: LeaveType[];
   onDeleted?: (id: string, employeeName: string) => void;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const [status, setStatus] = useState(initialStatus);
   const [expanded, setExpanded] = useState(false);
@@ -172,30 +178,32 @@ export default function RequestRow({
         </button>
       </div>
 
-      {expanded && (
+      {expanded && (reason || isAdmin) && (
         <div className="req-row-expand">
           {reason && <div className="req-reason">{reason}</div>}
           {error && <div className="form-error">{error}</div>}
-          <div className="req-row-actions">
-            <button
-              type="button"
-              className={`status-btn approve${status === "approved" ? " active" : ""}`}
-              onClick={() => toggleStatus("approved")}
-              aria-pressed={status === "approved"}
-              disabled={isPending}
-            >
-              ✓ אישור
-            </button>
-            <button
-              type="button"
-              className={`status-btn deny${status === "denied" ? " active" : ""}`}
-              onClick={() => toggleStatus("denied")}
-              aria-pressed={status === "denied"}
-              disabled={isPending}
-            >
-              ✕ דחייה
-            </button>
-          </div>
+          {isAdmin && (
+            <div className="req-row-actions">
+              <button
+                type="button"
+                className={`status-btn approve${status === "approved" ? " active" : ""}`}
+                onClick={() => toggleStatus("approved")}
+                aria-pressed={status === "approved"}
+                disabled={isPending}
+              >
+                ✓ אישור
+              </button>
+              <button
+                type="button"
+                className={`status-btn deny${status === "denied" ? " active" : ""}`}
+                onClick={() => toggleStatus("denied")}
+                aria-pressed={status === "denied"}
+                disabled={isPending}
+              >
+                ✕ דחייה
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -214,6 +222,9 @@ export default function RequestRow({
         defaultDate={date}
         defaultReason={reason}
         defaultLeaveTypeId={leaveTypeId}
+        isAdmin={isAdmin}
+        employeeNames={employeeNames}
+        currentUserDisplayName={currentUserDisplayName}
       />
     </div>
   );

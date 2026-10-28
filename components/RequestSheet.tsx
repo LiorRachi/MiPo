@@ -35,6 +35,9 @@ const RequestSheetForm = memo(function RequestSheetForm({
   defaultDate,
   defaultReason,
   defaultLeaveTypeId,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   mode: "add" | "edit";
   onClose: () => void;
@@ -46,6 +49,9 @@ const RequestSheetForm = memo(function RequestSheetForm({
   defaultDate: string;
   defaultReason?: string | null;
   defaultLeaveTypeId?: string;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const [selectedType, setSelectedType] = useState(
     defaultLeaveTypeId ?? leaveTypes[0]?.id ?? "",
@@ -89,6 +95,9 @@ const RequestSheetForm = memo(function RequestSheetForm({
           defaultEmployeeName={defaultEmployeeName}
           defaultDate={defaultDate}
           defaultReason={defaultReason}
+          isAdmin={isAdmin}
+          employeeNames={employeeNames}
+          currentUserDisplayName={currentUserDisplayName}
         />
         <div className="sheet-actions">
           {mode === "edit" ? (
@@ -130,6 +139,9 @@ export default function RequestSheet({
   defaultDate,
   defaultReason,
   defaultLeaveTypeId,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   mode: "add" | "edit";
   open: boolean;
@@ -142,6 +154,9 @@ export default function RequestSheet({
   defaultDate?: string;
   defaultReason?: string | null;
   defaultLeaveTypeId?: string;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const date = defaultDate ?? toISODate(new Date());
 
@@ -182,6 +197,9 @@ export default function RequestSheet({
             defaultDate={date}
             defaultReason={defaultReason}
             defaultLeaveTypeId={defaultLeaveTypeId}
+            isAdmin={isAdmin}
+            employeeNames={employeeNames}
+            currentUserDisplayName={currentUserDisplayName}
           />
         )}
       </div>

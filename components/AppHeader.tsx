@@ -2,8 +2,10 @@ import Link from "next/link";
 
 export default function AppHeader({
   showSettingsLink = true,
+  userDisplayName,
 }: {
   showSettingsLink?: boolean;
+  userDisplayName?: string;
 }) {
   return (
     <header className="app-header">
@@ -24,15 +26,33 @@ export default function AppHeader({
           MiPo <small>מי פה</small>
         </span>
       </div>
-      {showSettingsLink && (
-        <Link
-          href="/settings"
-          className="icon-btn"
-          aria-label="ניהול סוגי חופשה"
-        >
-          ⚙
-        </Link>
-      )}
+      <div className="app-header-actions">
+        {userDisplayName ? (
+          showSettingsLink ? (
+            <Link
+              href="/settings"
+              className="avatar-circle"
+              aria-label="הגדרות"
+            >
+              {userDisplayName.trim().charAt(0)}
+            </Link>
+          ) : (
+            <span
+              className="avatar-circle"
+              aria-label={userDisplayName}
+              title={userDisplayName}
+            >
+              {userDisplayName.trim().charAt(0)}
+            </span>
+          )
+        ) : (
+          showSettingsLink && (
+            <Link href="/settings" className="icon-btn" aria-label="הגדרות">
+              ⚙
+            </Link>
+          )
+        )}
+      </div>
     </header>
   );
 }

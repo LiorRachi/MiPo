@@ -1,10 +1,13 @@
+import { redirect } from "next/navigation";
 import AppHeader from "@/components/AppHeader";
 import BottomNav from "@/components/BottomNav";
 import FetchErrorScreen from "@/components/FetchErrorScreen";
 import type { CalDay, DayEntry } from "@/components/MonthCalendar";
 import NotConfiguredScreen from "@/components/NotConfiguredScreen";
 import RequestsCalendar from "@/components/RequestsCalendar";
-import { supabaseConfigured } from "@/lib/supabase";
+import { getCurrentUser } from "@/lib/auth";
+import { supabaseConfigured } from "@/lib/supabase/server";
+import { fetchAllUsers } from "@/lib/users";
 import {
   fetchLeaveTypes,
   fetchRequestsInRange,
@@ -44,13 +47,26 @@ export default async function Requests({
     return <NotConfiguredScreen active="requests" />;
   }
 
+  const currentUser = await getCurrentUser();
+  if (!currentUser) redirect("/login");
+  const isAdmin = currentUser.role === "admin";
+
   let leaveTypes;
   let requests;
+  let employeeNames: string[] = [];
   try {
-    [leaveTypes, requests] = await Promise.all([
+    const [fetchedLeaveTypes, fetchedRequests, profiles] = await Promise.all([
       fetchLeaveTypes(),
-      fetchRequestsInRange(rangeStart, rangeEnd),
+      fetchRequestsInRange(
+        rangeStart,
+        rangeEnd,
+        isAdmin ? undefined : currentUser.id,
+      ),
+      isAdmin ? fetchAllUsers() : Promise.resolve([]),
     ]);
+    leaveTypes = fetchedLeaveTypes;
+    requests = fetchedRequests;
+    employeeNames = profiles.map((p) => p.display_name);
   } catch {
     return <FetchErrorScreen active="requests" />;
   }
@@ -101,7 +117,7 @@ export default async function Requests({
 
   return (
     <div className="app-shell">
-      <AppHeader />
+      <AppHeader userDisplayName={currentUser.displayName} />
 
       {leaveTypes.length === 0 ? (
         <div className="empty-week">
@@ -118,6 +134,9 @@ export default async function Requests({
           entriesByDay={entriesByDay}
           initialSelected={initialSelected}
           leaveTypes={leaveTypes}
+          isAdmin={isAdmin}
+          employeeNames={employeeNames}
+          currentUserDisplayName={currentUser.displayName}
         />
       )}
 

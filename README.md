@@ -10,34 +10,49 @@ for the validated design decisions this implements.
 1. **Supabase project:** create one at [supabase.com](https://supabase.com) (free
    tier), then in the SQL Editor run [`supabase/schema.sql`](supabase/schema.sql) to
    create the tables and seed the two leave types.
-2. **Environment variables:** create a `.env.local` file in the project root with:
+2. **Disable public signup:** in the Supabase dashboard, go to Authentication →
+   Sign In / Providers → Email, and turn **off** "Allow new users to sign up".
+   There's no sign-up screen in the app either way, but this closes the
+   underlying Auth API too — accounts are created only by an admin, from
+   Settings (or the bootstrap script below).
+3. **Environment variables:** create a `.env.local` file in the project root with:
    ```
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
-   Easiest way to get both: click **Connect** near the top of your Supabase
-   project dashboard — it hands you these two values directly. (Older
-   Supabase projects may instead call this the **anon public** key under
-   Settings → API — same thing, just older naming.) Never use the
-   `service_role` / **secret** key here — that one must stay server-only.
-3. **Run it:**
+   Get the first two from **Connect** near the top of your Supabase project
+   dashboard (older projects may call the second one the **anon public** key
+   under Settings → API — same thing). Get the service-role key from
+   Settings → API → **service_role** / secret key. That last one must stay
+   server-only — note it has no `NEXT_PUBLIC_` prefix, unlike the other two,
+   so Next.js never bundles it into client-side JS. `.env.local` is
+   gitignored; never commit any of these.
+4. **Create the first admin account** (one-time — every account after this
+   one is created from Settings in the app itself):
+   ```bash
+   node --env-file=.env.local scripts/create-admin.mjs you@example.com a-strong-password "Your Name"
+   ```
+5. **Run it:**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000).
+   Open [http://localhost:3000](http://localhost:3000) and log in with the
+   account from step 4.
 
 Until the env vars are set, the app shows a setup notice instead of the grid.
 
 ## Notes
 
-- v1 has no login/auth. RLS is enabled with an explicit "anon can do
-  everything" policy (see `supabase/schema.sql`) — safe today only because the
-  anon key lives in a gitignored `.env.local` and nothing is deployed, so
-  nobody else can reach the API. **Before deploying to Vercel (or anywhere
-  else public): tighten those policies or move writes behind a server-only
-  key.** `NEXT_PUBLIC_*` env vars get bundled into client-side JS, so the anon
-  key becomes publicly visible the moment this is deployed.
-- Employee names are free text on each request (no separate employee list yet).
+- **Auth:** login only, no public signup — an admin creates every account
+  (email + password + display name + role) from Settings → ניהול משתמשים.
+  Every screen is gated behind login (see `middleware.ts`); only `admin`-role
+  accounts can reach Settings (leave types and user accounts). RLS requires
+  an authenticated session on every table (see `supabase/schema.sql`); the
+  old "anon full access" v1 policies are gone.
+- Employee names are still free text on each leave request — login accounts
+  aren't linked to specific employee-name values (anyone logged in can submit
+  a request for any name, same as before auth existed).
 - Leave types live in the `leave_types` table — add a row there to add a new type;
   pick a `color_key` that has a matching `--leave-<color_key>` token in
   `app/globals.css` (currently `vacation`, `medical`, `other`).

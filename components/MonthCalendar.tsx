@@ -44,6 +44,9 @@ export default function MonthCalendar({
   onSelect,
   leaveTypes,
   onRequestDeleted,
+  isAdmin,
+  employeeNames,
+  currentUserDisplayName,
 }: {
   monthLabel: string;
   prevMonthHref: string;
@@ -54,6 +57,9 @@ export default function MonthCalendar({
   onSelect: (iso: string) => void;
   leaveTypes: LeaveType[];
   onRequestDeleted?: (id: string, employeeName: string) => void;
+  isAdmin: boolean;
+  employeeNames: string[];
+  currentUserDisplayName: string;
 }) {
   const selectedDay = days.find((d) => d.iso === selected);
   const selectedEntries = entriesByDay[selected] ?? [];
@@ -151,6 +157,9 @@ export default function MonthCalendar({
                 date={e.date}
                 leaveTypes={leaveTypes}
                 onDeleted={onRequestDeleted}
+                isAdmin={isAdmin}
+                employeeNames={employeeNames}
+                currentUserDisplayName={currentUserDisplayName}
               />
             ))
           )}
