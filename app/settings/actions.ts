@@ -181,6 +181,13 @@ export async function createUser(
   if (password.length < 8) return { error: "הסיסמה חייבת לכלול לפחות 8 תווים" };
   if (!isValidRole(role)) return { error: "תפקיד לא תקין" };
 
+  const { data: nameClash } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("display_name", displayName)
+    .maybeSingle();
+  if (nameClash) return { error: "כבר קיים משתמש עם השם הזה" };
+
   const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
@@ -196,8 +203,16 @@ export async function createUser(
   });
   if (profileError) {
     // Roll back the auth account so a failed profile insert doesn't leave an
-    // orphaned login nothing in the UI can see or manage.
-    await admin.auth.admin.deleteUser(data.user.id);
+    // orphaned login nothing in the UI can see or manage. If the rollback
+    // itself fails, say so explicitly instead of reporting only the original
+    // error — a silently-failed rollback is exactly what leaves an orphaned
+    // account no future admin can find or clean up.
+    const { error: rollbackError } = await admin.auth.admin.deleteUser(data.user.id);
+    if (rollbackError) {
+      return {
+        error: `יצירת המשתמש נכשלה ונוצר חשבון שלא ניתן היה לנקות אוטומטית (מזהה: ${data.user.id}). יש לפנות לתמיכה.`,
+      };
+    }
     return { error: profileError.message };
   }
 
@@ -229,6 +244,14 @@ export async function updateUser(
   if (role !== "admin" && id === auth.user.id) {
     return { error: "לא ניתן להסיר הרשאת מנהל מהחשבון שלך" };
   }
+
+  const { data: nameClash } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("display_name", displayName)
+    .neq("id", id)
+    .maybeSingle();
+  if (nameClash) return { error: "כבר קיים משתמש עם השם הזה" };
 
   if (password) {
     const { error } = await admin.auth.admin.updateUserById(id, { password });

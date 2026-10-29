@@ -2,12 +2,13 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createUser, type UserActionState } from "@/app/settings/actions";
+import { ROLE_OPTIONS } from "@/lib/userRoles";
+import PasswordField from "./PasswordField";
 
 const initialState: UserActionState = {};
 
 export default function AddUserForm() {
   const [open, setOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(
     async (prevState: UserActionState, formData: FormData) => {
@@ -57,30 +58,16 @@ export default function AddUserForm() {
       </div>
       <div className="field">
         <label htmlFor="new-user-password">סיסמה</label>
-        <div className="password-field">
-          <input
-            id="new-user-password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            required
-            minLength={8}
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "הסתרת סיסמה" : "הצגת סיסמה"}
-          >
-            {showPassword ? "🙈" : "👁"}
-          </button>
-        </div>
+        <PasswordField id="new-user-password" name="password" required minLength={8} />
       </div>
       <div className="field">
         <label htmlFor="new-user-role">תפקיד</label>
         <select id="new-user-role" name="role" defaultValue="employee">
-          <option value="employee">עובד/ת</option>
-          <option value="admin">מנהל/ת</option>
+          {ROLE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
       <button type="submit" className="btn primary" disabled={pending}>

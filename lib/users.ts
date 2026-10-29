@@ -1,7 +1,8 @@
 import { requireAdmin } from "./auth";
 import { createAdminClient } from "./supabase/admin";
+import type { UserRole } from "./userRoles";
 
-export type UserRole = "admin" | "employee";
+export type { UserRole } from "./userRoles";
 
 export type Profile = {
   id: string;

@@ -46,7 +46,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+    // A valid session alone isn't enough — an auth user with no profiles row
+    // (e.g. a user-creation rollback that itself failed) would otherwise get
+    // bounced right back here by every other page's own redirect("/login"),
+    // an infinite loop. Only send them on to "/" once a profile confirms
+    // they're actually a usable account.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   return response;

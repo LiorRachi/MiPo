@@ -26,8 +26,11 @@ export async function login(
   if (error) return { error: "אימייל או סיסמה שגויים" };
 
   // "//evil.com" also starts with "/" but browsers resolve a protocol-relative
-  // URL like that against the current scheme — i.e. straight off-site.
-  const isSafeLocalPath = next.startsWith("/") && !next.startsWith("//");
+  // URL like that against the current scheme — i.e. straight off-site. A
+  // backslash anywhere is blocked too: browsers normalize "\" to "/" for
+  // http(s) URLs, so "/\evil.com" would otherwise be treated the same way.
+  const isSafeLocalPath =
+    next.startsWith("/") && !next.startsWith("//") && !next.includes("\\");
   redirect(isSafeLocalPath ? next : "/");
 }
 

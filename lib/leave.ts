@@ -1,5 +1,7 @@
+import type { CurrentUser } from "./auth";
 import { isWeekend, toISODate } from "./date";
 import { createClient } from "./supabase/server";
+import { fetchAllUsers } from "./users";
 
 export type LeaveType = {
   id: string;
@@ -30,29 +32,52 @@ export function isVisibleOnDay(leaveType: LeaveType, day: Date): boolean {
   return leaveType.weekend_applicable || !isWeekend(day);
 }
 
+/** Whether `request` is an approved request of `leaveType` that covers
+ * `day` — the single predicate behind both the week-grid's cells and the
+ * attendance-copy list, so the two can't drift on what counts as "out". */
+export function isApprovedOnDay(
+  request: LeaveRequest,
+  leaveType: LeaveType,
+  day: Date,
+): boolean {
+  if (request.leave_type_id !== leaveType.id || request.status !== "approved") {
+    return false;
+  }
+  if (!isVisibleOnDay(leaveType, day)) return false;
+  const iso = toISODate(day);
+  return request.start_date <= iso && request.end_date >= iso;
+}
+
 export type AttendanceEntry = { employeeName: string; labelHe: string };
 
-/** Everyone approved to be out on `day`, across all leave types — the same
- * "approved + visible on this day" rule the week-grid cells use, flattened
- * into name/type pairs for the copy-to-clipboard attendance list. */
+const PRESENT_LABEL_HE = "נוכח";
+
+/** The whole roster's status on `day`, for the copy-to-clipboard attendance
+ * list: each name in `employeeNames` paired with their approved leave type's
+ * label, or "נוכח" when they have none. A name with an approved absence but
+ * no matching roster entry (a removed/renamed profile) is still appended, so
+ * a real recorded absence is never silently dropped. */
 export function attendanceForDay(
   leaveTypes: LeaveType[],
   requests: LeaveRequest[],
+  employeeNames: string[],
   day: Date,
 ): AttendanceEntry[] {
-  const iso = toISODate(day);
-  const entries: AttendanceEntry[] = [];
+  const absentByName = new Map<string, string>();
   for (const lt of leaveTypes) {
-    if (!isVisibleOnDay(lt, day)) continue;
     for (const r of requests) {
-      if (
-        r.leave_type_id === lt.id &&
-        r.status === "approved" &&
-        r.start_date <= iso &&
-        r.end_date >= iso
-      ) {
-        entries.push({ employeeName: r.employee_name, labelHe: lt.label_he });
+      if (isApprovedOnDay(r, lt, day)) {
+        absentByName.set(r.employee_name, lt.label_he);
       }
+    }
+  }
+  const entries: AttendanceEntry[] = employeeNames.map((employeeName) => ({
+    employeeName,
+    labelHe: absentByName.get(employeeName) ?? PRESENT_LABEL_HE,
+  }));
+  for (const [employeeName, labelHe] of absentByName) {
+    if (!employeeNames.includes(employeeName)) {
+      entries.push({ employeeName, labelHe });
     }
   }
   return entries;
@@ -98,4 +123,32 @@ export async function fetchRequestsInRange(
   const { data, error } = await query.order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export type LeavePageData = {
+  leaveTypes: LeaveType[];
+  requests: LeaveRequest[];
+  employeeNames: string[];
+};
+
+/** The three fetches every top-level page needs — leave types, requests
+ * scoped to the viewer (everyone's, for an admin; only their own otherwise),
+ * and the employee-name list an admin's "add request" picker needs — run in
+ * parallel. Shared by `/` and `/requests`, which both need exactly this. */
+export async function fetchLeavePageData(
+  rangeStart: string,
+  rangeEnd: string,
+  currentUser: CurrentUser,
+): Promise<LeavePageData> {
+  const isAdmin = currentUser.role === "admin";
+  const [leaveTypes, requests, profiles] = await Promise.all([
+    fetchLeaveTypes(),
+    fetchRequestsInRange(rangeStart, rangeEnd, isAdmin ? undefined : currentUser.id),
+    isAdmin ? fetchAllUsers() : Promise.resolve([]),
+  ]);
+  return {
+    leaveTypes,
+    requests,
+    employeeNames: profiles.map((p) => p.display_name),
+  };
 }

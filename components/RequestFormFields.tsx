@@ -32,9 +32,9 @@ export default function RequestFormFields({
             defaultValue={defaultEmployeeName ?? ""}
             required
           >
-            {/* On add, force an explicit choice instead of silently defaulting
-                to the first name in the list — `required` only blocks an
-                empty/disabled value, not a pre-selected real one. */}
+            {/* No real default on add: force an explicit choice instead of
+                silently defaulting to the admin's own name, which an admin
+                logging leave for someone else could easily miss. */}
             {!defaultEmployeeName && (
               <option value="" disabled>
                 בחר שם...

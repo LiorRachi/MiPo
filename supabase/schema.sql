@@ -87,6 +87,13 @@ alter table profiles drop constraint if exists profiles_role_check;
 alter table profiles add constraint profiles_role_check
   check (role in ('admin', 'employee'));
 
+-- Two profiles sharing a display name make every name-keyed lookup ambiguous
+-- (attendance-list status, admin request reassignment) — enforced here so
+-- that ambiguity can't exist in the first place, rather than every reader of
+-- employee_name having to guard against it.
+alter table profiles drop constraint if exists profiles_display_name_unique;
+alter table profiles add constraint profiles_display_name_unique unique (display_name);
+
 -- The stable identity a request's ownership/visibility checks key off of.
 -- employee_name stays as a denormalized display label (many screens read it
 -- directly) but is free text — two people can share a display name, and an
@@ -176,8 +183,12 @@ drop policy if exists "authenticated full access" on leave_requests;
 
 -- A non-admin may only see/insert/update their own requests (by profile_id,
 -- not the spoofable employee_name text); an admin sees and manages everyone's.
--- Status changes are additionally locked down below by a trigger, since RLS
--- can't gate one column differently from the rest of the same update.
+-- A non-admin's write is further constrained to their own real display name
+-- (no spoofing another name) and, on insert, to status='pending' (no
+-- self-approval at creation). Status changes after that, and any edit to an
+-- already-decided request's actual leave period/type, are additionally
+-- locked down below by a trigger, since RLS's WITH CHECK can't express "this
+-- column may not change" or "reset this other column as a side effect."
 drop policy if exists "own or admin read" on leave_requests;
 create policy "own or admin read" on leave_requests
   for select
@@ -188,8 +199,23 @@ drop policy if exists "own or admin insert" on leave_requests;
 create policy "own or admin insert" on leave_requests
   for insert
   to authenticated
-  with check (profile_id = auth.uid() or is_admin());
+  with check (
+    is_admin()
+    or (
+      profile_id = auth.uid()
+      and status = 'pending'
+      and employee_name = (select display_name from profiles where id = auth.uid())
+    )
+  );
 
+-- employee_name isn't re-checked here against the caller's own display name
+-- the way the insert policy does: WITH CHECK only sees the proposed NEW row,
+-- not OLD, so it can't tell "unchanged" from "reassigned" — and a stale
+-- employee_name left over from a profile rename (see the profile_id comment
+-- above) must still be allowed to pass through untouched on an update to
+-- some other column. The trigger below has both OLD and NEW, so the
+-- spoofing check (only an actual *change* to employee_name is constrained)
+-- lives there instead.
 drop policy if exists "own or admin update" on leave_requests;
 create policy "own or admin update" on leave_requests
   for update
@@ -197,16 +223,25 @@ create policy "own or admin update" on leave_requests
   using (profile_id = auth.uid() or is_admin())
   with check (profile_id = auth.uid() or is_admin());
 
+-- No delete policy: the app only ever soft-deletes (sets deleted_at via
+-- update), so with no policy for this operation RLS denies every real
+-- DELETE by default — not even an admin's own session can hard-delete a row
+-- via the API, bypassing the soft-delete/undo mechanism.
 drop policy if exists "admin delete" on leave_requests;
-create policy "admin delete" on leave_requests
-  for delete
-  to authenticated
-  using (is_admin());
 
--- Backstop for setLeaveRequestStatus's requireAdmin() check: without this, a
--- non-admin's own valid session could call the REST API directly and set
--- their own request to 'approved', since the update policy above only checks
--- ownership, not which columns changed.
+-- Backstop for setLeaveRequestStatus's requireAdmin() check, and for cases
+-- RLS's WITH CHECK can't express on its own (it only sees the proposed NEW
+-- row, not OLD, so it can't tell an unchanged column from a changed one):
+--  1. a non-admin's own valid session could otherwise call the REST API
+--     directly and set their own request to 'approved' (the update policy
+--     above only checks ownership, not which columns changed);
+--  2. a non-admin changing employee_name to anything other than their own
+--     current display name — an *unchanged* legacy value (stale after a
+--     profile rename) still has to pass, only an actual reassignment is
+--     blocked;
+--  3. once a request is approved/denied, a non-admin changing what was
+--     actually approved (its type or dates) sends it back to 'pending' for
+--     re-review instead of silently keeping the old decision's status.
 create or replace function enforce_status_admin_only()
 returns trigger
 language plpgsql
@@ -214,9 +249,30 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.status is distinct from old.status and not is_admin() then
+  if is_admin() then
+    return new;
+  end if;
+
+  if new.status is distinct from old.status then
     raise exception 'only an admin can change a request''s status';
   end if;
+
+  if new.employee_name is distinct from old.employee_name
+    and new.employee_name is distinct from (
+      select display_name from profiles where id = auth.uid()
+    )
+  then
+    raise exception 'cannot reassign a request to another name';
+  end if;
+
+  if old.status <> 'pending' and (
+    new.leave_type_id is distinct from old.leave_type_id
+    or new.start_date is distinct from old.start_date
+    or new.end_date is distinct from old.end_date
+  ) then
+    new.status := 'pending';
+  end if;
+
   return new;
 end;
 $$;

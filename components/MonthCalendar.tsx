@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { LeaveRequestStatus, LeaveType } from "@/lib/leave";
+import LeaveTypeLegend from "./LeaveTypeLegend";
 import RequestRow from "./RequestRow";
 
 const WEEKDAY_HEADERS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
@@ -128,14 +129,7 @@ export default function MonthCalendar({
             </div>
           ))}
         </div>
-        <div className="cal-legend">
-          {leaveTypes.map((lt) => (
-            <span key={lt.id}>
-              <span className={`dot ${lt.color_key}`} />
-              {lt.label_he}
-            </span>
-          ))}
-        </div>
+        <LeaveTypeLegend leaveTypes={leaveTypes} className="cal-legend" />
       </div>
 
       <div className="day-detail">

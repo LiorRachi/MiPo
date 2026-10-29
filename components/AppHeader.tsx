@@ -7,6 +7,8 @@ export default function AppHeader({
   showSettingsLink?: boolean;
   userDisplayName?: string;
 }) {
+  const initial = userDisplayName?.trim().charAt(0);
+
   return (
     <header className="app-header">
       <div className="app-title">
@@ -27,30 +29,24 @@ export default function AppHeader({
         </span>
       </div>
       <div className="app-header-actions">
-        {userDisplayName ? (
-          showSettingsLink ? (
-            <Link
-              href="/settings"
-              className="avatar-circle"
-              aria-label="הגדרות"
-            >
-              {userDisplayName.trim().charAt(0)}
-            </Link>
-          ) : (
-            <span
-              className="avatar-circle"
-              aria-label={userDisplayName}
-              title={userDisplayName}
-            >
-              {userDisplayName.trim().charAt(0)}
-            </span>
-          )
-        ) : (
-          showSettingsLink && (
-            <Link href="/settings" className="icon-btn" aria-label="הגדרות">
-              ⚙
-            </Link>
-          )
+        {!initial && showSettingsLink && (
+          <Link href="/settings" className="icon-btn" aria-label="הגדרות">
+            ⚙
+          </Link>
+        )}
+        {initial && showSettingsLink && (
+          <Link href="/settings" className="avatar-circle" aria-label="הגדרות">
+            {initial}
+          </Link>
+        )}
+        {initial && !showSettingsLink && (
+          <span
+            className="avatar-circle"
+            aria-label={userDisplayName}
+            title={userDisplayName}
+          >
+            {initial}
+          </span>
         )}
       </div>
     </header>

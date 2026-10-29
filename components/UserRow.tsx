@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import {
   deleteUser,
   updateUser,
   type UserActionState,
 } from "@/app/settings/actions";
 import type { Profile } from "@/lib/users";
+import { ROLE_OPTIONS } from "@/lib/userRoles";
+import PasswordField from "./PasswordField";
 
 const initialState: UserActionState = {};
 
@@ -25,7 +27,6 @@ export default function UserRow({
     deleteUser,
     initialState,
   );
-  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="settings-row">
@@ -39,24 +40,12 @@ export default function UserRow({
           aria-label="שם"
         />
         <div className="user-email">{user.email}</div>
-        <div className="password-field">
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            placeholder="סיסמה חדשה (השאירו ריק כדי לא לשנות)"
-            className="settings-label-input"
-            aria-label="סיסמה חדשה"
-            autoComplete="off"
-          />
-          <button
-            type="button"
-            className="icon-btn"
-            onClick={() => setShowPassword((v) => !v)}
-            aria-label={showPassword ? "הסתרת סיסמה" : "הצגת סיסמה"}
-          >
-            {showPassword ? "🙈" : "👁"}
-          </button>
-        </div>
+        <PasswordField
+          name="password"
+          placeholder="סיסמה חדשה (השאירו ריק כדי לא לשנות)"
+          className="settings-label-input"
+          ariaLabel="סיסמה חדשה"
+        />
         <div className="settings-row-bottom">
           {isSelf ? (
             // Disabled selects aren't included in form submission, so the
@@ -70,8 +59,11 @@ export default function UserRow({
                 disabled
                 aria-label="תפקיד"
               >
-                <option value="employee">עובד/ת</option>
-                <option value="admin">מנהל/ת</option>
+                {ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
               <input type="hidden" name="role" value={user.role} />
             </>
@@ -82,8 +74,11 @@ export default function UserRow({
               className="role-select"
               aria-label="תפקיד"
             >
-              <option value="employee">עובד/ת</option>
-              <option value="admin">מנהל/ת</option>
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           )}
           <div className="settings-row-actions">

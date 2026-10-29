@@ -7,12 +7,7 @@ import NotConfiguredScreen from "@/components/NotConfiguredScreen";
 import RequestsCalendar from "@/components/RequestsCalendar";
 import { getCurrentUser } from "@/lib/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
-import { fetchAllUsers } from "@/lib/users";
-import {
-  fetchLeaveTypes,
-  fetchRequestsInRange,
-  isVisibleOnDay,
-} from "@/lib/leave";
+import { fetchLeavePageData, isVisibleOnDay, type LeavePageData } from "@/lib/leave";
 import {
   addMonths,
   formatDayLabelHe,
@@ -51,25 +46,13 @@ export default async function Requests({
   if (!currentUser) redirect("/login");
   const isAdmin = currentUser.role === "admin";
 
-  let leaveTypes;
-  let requests;
-  let employeeNames: string[] = [];
+  let data: LeavePageData;
   try {
-    const [fetchedLeaveTypes, fetchedRequests, profiles] = await Promise.all([
-      fetchLeaveTypes(),
-      fetchRequestsInRange(
-        rangeStart,
-        rangeEnd,
-        isAdmin ? undefined : currentUser.id,
-      ),
-      isAdmin ? fetchAllUsers() : Promise.resolve([]),
-    ]);
-    leaveTypes = fetchedLeaveTypes;
-    requests = fetchedRequests;
-    employeeNames = profiles.map((p) => p.display_name);
+    data = await fetchLeavePageData(rangeStart, rangeEnd, currentUser);
   } catch {
     return <FetchErrorScreen active="requests" />;
   }
+  const { leaveTypes, requests, employeeNames } = data;
 
   const leaveTypeById = new Map(leaveTypes.map((lt) => [lt.id, lt]));
 
