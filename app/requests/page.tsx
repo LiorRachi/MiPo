@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation";
-import AppHeader from "@/components/AppHeader";
-import BottomNav from "@/components/BottomNav";
-import FetchErrorScreen from "@/components/FetchErrorScreen";
-import type { CalDay, DayEntry } from "@/components/MonthCalendar";
-import NotConfiguredScreen from "@/components/NotConfiguredScreen";
-import RequestsCalendar from "@/components/RequestsCalendar";
-import { getCurrentUser } from "@/lib/auth";
+import AppHeader from "@/components/shared/AppHeader";
+import BottomNav from "@/components/shared/BottomNav";
+import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import type { CalDay, DayEntry } from "@/components/calendar/MonthCalendar";
+import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
+import RequestsCalendar from "@/components/requests/RequestsCalendar";
+import { getCurrentUser } from "@/lib/auth/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
-import { fetchLeavePageData, isVisibleOnDay, type LeavePageData } from "@/lib/leave";
+import {
+  fetchLeavePageData,
+  isVisibleOnDay,
+  latestOwnDecisionAt,
+  type LeavePageData,
+} from "@/lib/leave/leave";
 import {
   addMonths,
   formatDayLabelHe,
@@ -19,7 +24,7 @@ import {
   toISODate,
   toISOMonth,
   todayInIsrael,
-} from "@/lib/date";
+} from "@/lib/utils/date";
 
 export default async function Requests({
   searchParams,
@@ -47,10 +52,14 @@ export default async function Requests({
   const isAdmin = currentUser.role === "admin";
 
   let data: LeavePageData;
+  let latestDecisionAt: string | null;
   try {
-    data = await fetchLeavePageData(rangeStart, rangeEnd, currentUser);
+    [data, latestDecisionAt] = await Promise.all([
+      fetchLeavePageData(rangeStart, rangeEnd, currentUser),
+      latestOwnDecisionAt(currentUser.id),
+    ]);
   } catch {
-    return <FetchErrorScreen active="requests" />;
+    return <FetchErrorScreen active="requests" currentUserId={currentUser.id} />;
   }
   const { leaveTypes, requests, employeeNames } = data;
 
@@ -77,6 +86,8 @@ export default async function Requests({
           status: r.status,
           leave_type_id: r.leave_type_id,
           date: r.start_date,
+          decided_by_name: r.decided_by_name,
+          decided_at: r.decided_at,
         };
       })
       .sort((a, b) => a.employee_name.localeCompare(b.employee_name, "he"));
@@ -123,7 +134,11 @@ export default async function Requests({
         />
       )}
 
-      <BottomNav active="requests" />
+      <BottomNav
+        active="requests"
+        currentUserId={currentUser.id}
+        latestOwnDecisionAt={latestDecisionAt}
+      />
     </div>
   );
 }

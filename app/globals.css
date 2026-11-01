@@ -19,9 +19,10 @@
   --color-success-bg: #e6f6ef;
 
   /* Leave-type palette. color_key is constrained to exactly these names by
-     supabase/schema.sql's CHECK constraint — the /settings screen's color
-     picker only ever offers these, so a type can never end up with a
-     color_key that has no matching token/CSS class here. */
+     the leave_types_color_key_check constraint in supabase/migrations/ —
+     the /settings screen's color picker only ever offers these, so a type
+     can never end up with a color_key that has no matching token/CSS class
+     here. */
   --leave-vacation: #2f6fed;
   --leave-vacation-bg: #eaf1ff;
   --leave-medical: #d97706;
@@ -222,19 +223,47 @@ select {
   cursor: pointer;
 }
 
+.avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.admin-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  line-height: 1;
+  border: 1.5px solid var(--color-surface);
+}
+
 .app-logo {
   flex: none;
   border-radius: 5px;
 }
 
-.app-title-text {
+.app-title-text,
+.login-brand-text {
   display: flex;
   align-items: baseline;
 }
 
-.app-title small {
+.app-title small,
+.login-brand-text small {
   color: var(--color-text-faint);
   font-weight: 500;
+}
+
+.app-title small {
   font-size: var(--text-xs);
   margin-right: 6px;
 }
@@ -513,9 +542,21 @@ select {
 }
 
 .tabbar a .ic {
+  position: relative;
   display: block;
   font-size: 17px;
   margin-bottom: 2px;
+}
+
+.unread-dot {
+  position: absolute;
+  top: -1px;
+  inset-inline-end: calc(50% - 13px);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  border: 1.5px solid var(--color-surface);
 }
 
 .tabbar a.active {
@@ -724,6 +765,11 @@ select {
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.type-pick button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .type-pick button.sel.vacation {
@@ -1133,6 +1179,12 @@ select {
   color: var(--color-text-muted);
 }
 
+.req-decided-by {
+  margin: 0 0 10px;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
 .req-row-actions {
   display: flex;
   gap: 8px;
@@ -1396,11 +1448,7 @@ select {
 
 .settings-add-form {
   margin: 4px 14px 14px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
   padding: 14px;
-  box-shadow: var(--shadow-sm);
 }
 
 .settings-add-form-head {
@@ -1434,8 +1482,59 @@ select {
   opacity: 0.6;
 }
 
-.login-form {
-  margin-top: 24px;
+.login-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px 16px;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-brand svg {
+  border-radius: 10px;
+}
+
+.login-brand-text {
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.login-brand-text small {
+  font-size: var(--text-sm);
+  margin-right: 8px;
+}
+
+.settings-add-form,
+.login-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  padding: 20px;
+}
+
+.login-card h3 {
+  margin: 0 0 14px;
+  font-size: var(--text-base);
+}
+
+.login-card .btn.primary {
+  width: 100%;
+  margin-top: 4px;
 }
 
 /* Settings — display/theme */

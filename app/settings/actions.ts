@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAdmin } from "@/lib/auth";
-import { isValidColorKey } from "@/lib/leaveTypeColors";
-import type { UserRole } from "@/lib/users";
+import { requireAdmin } from "@/lib/auth/auth";
+import { isValidColorKey } from "@/lib/leave/leaveTypeColors";
+import type { UserRole } from "@/lib/auth/users";
 
 export type LeaveTypeActionState = {
   error?: string;
@@ -125,12 +125,16 @@ export async function deleteLeaveType(
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "שגיאה — חסר מזהה" };
 
-  const { error: purgeError } = await
-    supabase
-      .from("leave_requests")
-      .delete()
-      .eq("leave_type_id", id)
-      .not("deleted_at", "is", null);
+  // Uses the admin client: leave_requests has no delete policy for the
+  // regular client (even for admins), so this purge would otherwise match
+  // zero rows and silently leave old trashed rows blocking the delete below.
+  const admin = createAdminClient();
+  if (!admin) return { error: "Supabase לא מחובר עדיין." };
+  const { error: purgeError } = await admin
+    .from("leave_requests")
+    .delete()
+    .eq("leave_type_id", id)
+    .not("deleted_at", "is", null);
 
   if (purgeError) return { error: purgeError.message }
 

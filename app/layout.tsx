@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { THEME_INIT_SCRIPT } from "@/lib/utils/theme";
 
 export const metadata: Metadata = {
   title: "MiPo · מי פה",

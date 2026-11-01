@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUser, requireAdmin } from "@/lib/auth";
+import { getCurrentUser, requireAdmin, type CurrentUser } from "@/lib/auth/auth";
+import { normailzeFieldValue } from "@/lib/utils/formUtils";
+import { resolveEmployeeName } from "@/lib/leave/resolveEmployeeName";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
-import { fetchAllUsers } from "@/lib/users";
-import type { LeaveRequestStatus } from "@/lib/leave";
+import type { LeaveRequestStatus } from "@/lib/leave/leave";
+import { isWeekend, parseISODate } from "@/lib/utils/date";
 
 export type AddRequestState = {
   error?: string;
@@ -16,8 +18,32 @@ function revalidateLeaveRequestConsumers() {
   revalidatePath("/requests");
 }
 
-function normailzeFieldValue(formData: FormData, fieldKey: string): string {
-  return String(formData.get(fieldKey) ?? "").trim();
+type SupabaseClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
+
+async function requireSupabaseClient(): Promise<
+  { error: string } | { supabase: SupabaseClient }
+> {
+  const supabase = await createClient();
+  if (!supabaseConfigured || !supabase) {
+    return { error: "Supabase לא מחובר עדיין." };
+  }
+  return { supabase };
+}
+
+// Shared by every action below that just needs "a logged-in user, writing
+// through a configured client" — addLeaveRequest is the only one that opts
+// out, since its not-configured message points admins at the setup
+// instructions shown on that same page.
+async function requireSessionAndSupabase(): Promise<
+  { error: string } | { supabase: SupabaseClient; currentUser: CurrentUser }
+> {
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { error: "יש להתחבר מחדש." };
+
+  return { supabase: clientResult.supabase, currentUser };
 }
 
 function parseRequestFields(
@@ -42,48 +68,28 @@ function parseRequestFields(
   return { leaveTypeId, date, reason: reason || null };
 }
 
-// The employee_name a non-admin submits is never trusted (a disabled/hidden
-// client field is still spoofable) — for them it's always their own
-// name/id, taken from the session. Only an admin may pick a different name,
-// resolved against the real profiles list rather than taken as free text.
-// A profile match always wins, even when the submitted name is unchanged
-// from the row's current one — otherwise every edit that leaves the name
-// dropdown untouched (the common case) would be mistaken for "preserving a
-// legacy name" and silently drop a perfectly valid profile_id.
-// `allowedExtraName` only kicks in once no profile matches: it lets an edit
-// keep a request's existing name even when it isn't a registered profile
-// (e.g. free-text names entered before this feature existed) — the select
-// still offers it as an option (see RequestFormFields) precisely so it
-// round-trips unchanged rather than silently reassigning the request to
-// whichever name happened to be first. Callers must pass the row's *actual
-// current* employee_name (read from the DB), not a client-supplied value —
-// otherwise a tampered hidden field would let an admin bypass the profiles
-// check entirely for an arbitrary string.
-async function resolveEmployeeName(
-  formData: FormData,
-  isAdmin: boolean,
-  selfId: string,
-  selfDisplayName: string,
-  allowedExtraName?: string,
-): Promise<{ error: string } | { employeeName: string; profileId: string | null }> {
-  if (!isAdmin) return { employeeName: selfDisplayName, profileId: selfId };
+// Mirrors the client-side guard in RequestSheet/RequestFormFields (which
+// just steers the UI) — without this, a direct POST could still create a
+// request for a leave type that doesn't apply on weekends.
+async function validateTypeDateCombo(
+  supabase: SupabaseClient,
+  leaveTypeId: string,
+  date: string,
+): Promise<{ error: string } | null> {
+  const { data: leaveType } = await supabase
+    .from("leave_types")
+    .select("label_he, weekend_applicable")
+    .eq("id", leaveTypeId)
+    .maybeSingle();
+  if (!leaveType) return { error: "סוג חופשה לא נמצא" };
 
-  const submitted = normailzeFieldValue(formData, "employee_name");
-  if (!submitted) return { error: "נא לבחור שם חייל/ת" };
-
-  const profiles = await fetchAllUsers().catch(() => null);
-  if (!profiles) return { error: "שגיאה בטעינת רשימת המשתמשים, נסו שוב." };
-
-  const match = profiles.find((p) => p.display_name === submitted);
-  if (match) return { employeeName: submitted, profileId: match.id };
-
-  if (submitted === allowedExtraName) {
-    // No profile matches, but it's the row's own current name — preserve it
-    // unchanged rather than reject the edit.
-    return { employeeName: submitted, profileId: null };
+  const parsedDate = parseISODate(date);
+  if (parsedDate && isWeekend(parsedDate) && !leaveType.weekend_applicable) {
+    return {
+      error: `${leaveType.label_he} לא חל/ה בסופ״ש - בחרו סוג יציאה אחר או תאריך אחר.`,
+    };
   }
-
-  return { error: "שם לא תקין" };
+  return null;
 }
 
 export async function addLeaveRequest(
@@ -101,12 +107,10 @@ export async function addLeaveRequest(
   const parsed = parseRequestFields(formData);
   if ("error" in parsed) return parsed;
 
-  const nameResult = await resolveEmployeeName(
-    formData,
-    currentUser.role === "admin",
-    currentUser.id,
-    currentUser.displayName,
-  );
+  const conflict = await validateTypeDateCombo(supabase, parsed.leaveTypeId, parsed.date);
+  if (conflict) return conflict;
+
+  const nameResult = await resolveEmployeeName(formData, currentUser);
   if ("error" in nameResult) return nameResult;
 
   const { error } = await supabase.from("leave_requests").insert({
@@ -128,19 +132,18 @@ export async function updateLeaveRequest(
   _prevState: AddRequestState,
   formData: FormData,
 ): Promise<AddRequestState> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const session = await requireSessionAndSupabase();
+  if ("error" in session) return session;
+  const { supabase, currentUser } = session;
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "שגיאה — חסר מזהה" };
 
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { error: "יש להתחבר מחדש." };
-
   const parsed = parseRequestFields(formData);
   if ("error" in parsed) return parsed;
+
+  const conflict = await validateTypeDateCombo(supabase, parsed.leaveTypeId, parsed.date);
+  if (conflict) return conflict;
 
   const updatePayload: {
     employee_name?: string;
@@ -173,9 +176,7 @@ export async function updateLeaveRequest(
 
     const nameResult = await resolveEmployeeName(
       formData,
-      true,
-      currentUser.id,
-      currentUser.displayName,
+      currentUser,
       existing?.employee_name,
     );
     if ("error" in nameResult) return nameResult;
@@ -210,13 +211,9 @@ export async function updateLeaveRequest(
 // Soft delete: sets deleted_at instead of removing the row, so a delete can
 // be undone (see undoDeleteLeaveRequest) via a short toast after the fact.
 export async function deleteLeaveRequest(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
-
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { error: "יש להתחבר מחדש." };
+  const session = await requireSessionAndSupabase();
+  if ("error" in session) return session;
+  const { supabase, currentUser } = session;
 
   let query = supabase
     .from("leave_requests")
@@ -239,13 +236,9 @@ export async function deleteLeaveRequest(id: string): Promise<{ error?: string }
 export async function undoDeleteLeaveRequest(
   id: string,
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
-
-  const currentUser = await getCurrentUser();
-  if (!currentUser) return { error: "יש להתחבר מחדש." };
+  const session = await requireSessionAndSupabase();
+  if ("error" in session) return session;
+  const { supabase, currentUser } = session;
 
   let query = supabase
     .from("leave_requests")
@@ -275,14 +268,23 @@ export async function setLeaveRequestStatus(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
+  // The audit trail (who decided, and when) only applies while the request
+  // is actually decided — reverting to "pending" (the undo case in
+  // RequestRow) clears it rather than leaving a stale decider on a request
+  // that's open again.
+  const decided = status !== "pending";
   const { data, error } = await supabase
     .from("leave_requests")
-    .update({ status })
+    .update({
+      status,
+      decided_by: decided ? auth.user.id : null,
+      decided_by_name: decided ? auth.user.displayName : null,
+      decided_at: decided ? new Date().toISOString() : null,
+    })
     .eq("id", id)
     .is("deleted_at", null)
     .select("id");

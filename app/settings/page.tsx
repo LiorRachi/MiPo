@@ -1,19 +1,19 @@
 import { redirect } from "next/navigation";
-import AddLeaveTypeForm from "@/components/AddLeaveTypeForm";
-import AddUserForm from "@/components/AddUserForm";
-import AppHeader from "@/components/AppHeader";
-import BackButton from "@/components/BackButton";
-import BottomNav from "@/components/BottomNav";
-import FetchErrorScreen from "@/components/FetchErrorScreen";
-import LeaveTypeList from "@/components/LeaveTypeList";
-import LogoutButton from "@/components/LogoutButton";
-import NotConfiguredScreen from "@/components/NotConfiguredScreen";
-import ThemeToggle from "@/components/ThemeToggle";
-import UserList from "@/components/UserList";
-import { getCurrentUser } from "@/lib/auth";
-import { fetchLeaveTypes, type LeaveType } from "@/lib/leave";
+import AddLeaveTypeForm from "@/components/leave-types/AddLeaveTypeForm";
+import AddUserForm from "@/components/users/AddUserForm";
+import AppHeader from "@/components/shared/AppHeader";
+import BackButton from "@/components/shared/BackButton";
+import BottomNav from "@/components/shared/BottomNav";
+import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import LeaveTypeList from "@/components/leave-types/LeaveTypeList";
+import LogoutButton from "@/components/auth/LogoutButton";
+import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
+import ThemeToggle from "@/components/shared/ThemeToggle";
+import UserList from "@/components/users/UserList";
+import { getCurrentUser } from "@/lib/auth/auth";
+import { fetchLeaveTypes, type LeaveType } from "@/lib/leave/leave";
 import { supabaseConfigured } from "@/lib/supabase/server";
-import { fetchAllUsers, type Profile } from "@/lib/users";
+import { fetchAllUsers, type Profile } from "@/lib/auth/users";
 
 export default async function Settings() {
   if (!supabaseConfigured) {
@@ -33,10 +33,10 @@ export default async function Settings() {
     try {
       [leaveTypes, users] = await Promise.all([
         fetchLeaveTypes(),
-        fetchAllUsers(),
+        fetchAllUsers(currentUser),
       ]);
     } catch {
-      return <FetchErrorScreen active="settings" />;
+      return <FetchErrorScreen active="settings" currentUserId={currentUser.id} />;
     }
   }
 
@@ -45,7 +45,10 @@ export default async function Settings() {
 
   return (
     <div className="app-shell">
-      <AppHeader showSettingsLink={false} userDisplayName={currentUser.displayName} />
+      <AppHeader
+        showSettingsLink={false}
+        userDisplayName={currentUser.displayName}
+      />
 
       <BackButton />
 
@@ -85,7 +88,7 @@ export default async function Settings() {
       <h2 className="page-title">חשבון</h2>
       <LogoutButton />
 
-      <BottomNav active="settings" />
+      <BottomNav active="settings" currentUserId={currentUser.id} />
     </div>
   );
 }

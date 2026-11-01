@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AddRequestSheet from "@/components/AddRequestSheet";
-import AppHeader from "@/components/AppHeader";
-import BottomNav from "@/components/BottomNav";
-import FetchErrorScreen from "@/components/FetchErrorScreen";
-import LeaveTypeLegend from "@/components/LeaveTypeLegend";
-import NotConfiguredScreen from "@/components/NotConfiguredScreen";
-import WeekGrid from "@/components/WeekGrid";
-import { getCurrentUser } from "@/lib/auth";
+import AddRequestSheet from "@/components/requests/AddRequestSheet";
+import AppHeader from "@/components/shared/AppHeader";
+import BottomNav from "@/components/shared/BottomNav";
+import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import LeaveTypeLegend from "@/components/leave-types/LeaveTypeLegend";
+import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
+import WeekGrid from "@/components/calendar/WeekGrid";
+import { getCurrentUser } from "@/lib/auth/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
-import { fetchLeavePageData, type LeavePageData } from "@/lib/leave";
+import { fetchLeavePageData, latestOwnDecisionAt, type LeavePageData } from "@/lib/leave/leave";
 import {
   addDays,
   formatWeekRangeHe,
@@ -19,7 +19,7 @@ import {
   todayInIsrael,
   weekDays,
   weekStart,
-} from "@/lib/date";
+} from "@/lib/utils/date";
 
 export default async function Home({
   searchParams,
@@ -47,10 +47,14 @@ export default async function Home({
   const isAdmin = currentUser.role === "admin";
 
   let data: LeavePageData;
+  let latestDecisionAt: string | null;
   try {
-    data = await fetchLeavePageData(rangeStart, rangeEnd, currentUser);
+    [data, latestDecisionAt] = await Promise.all([
+      fetchLeavePageData(rangeStart, rangeEnd, currentUser),
+      latestOwnDecisionAt(currentUser.id),
+    ]);
   } catch {
-    return <FetchErrorScreen active="table" />;
+    return <FetchErrorScreen active="table" currentUserId={currentUser.id} />;
   }
   const { leaveTypes, requests, employeeNames } = data;
 
@@ -92,7 +96,11 @@ export default async function Home({
           currentUserDisplayName={currentUser.displayName}
         />
       )}
-      <BottomNav active="table" />
+      <BottomNav
+        active="table"
+        currentUserId={currentUser.id}
+        latestOwnDecisionAt={latestDecisionAt}
+      />
     </div>
   );
 }

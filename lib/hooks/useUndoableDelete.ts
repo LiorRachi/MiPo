@@ -29,9 +29,11 @@ export function useUndoableDelete(
         if (!currentId) return;
 
         setQueue(prev => prev.filter((d) => d.id !== currentId));
-        undo(currentId).then((result) => {
-            if (result?.error) onUndoError?.(result.error);
-        });
+        undo(currentId)
+            .then((result) => {
+                if (result?.error) onUndoError?.(result.error);
+            })
+            .catch(() => onUndoError?.("שגיאה — הבקשה לא בוטלה"));
     }
 
     return { current: queue[0], notifyDeleted, undoCurrent }
