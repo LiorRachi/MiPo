@@ -16,13 +16,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npx tsc --noEmit
       - run: npm test
+      # Also the type-check: next build generates its own route types
+      # (LayoutProps etc.) before compiling, which a standalone `tsc --noEmit`
+      # doesn't have — so build is the only place that can type-check cleanly
+      # on a fresh checkout.
       - run: npm run build
         env:
           # Dummy values so the build step succeeds without real secrets —
-          # this only type-checks and bundles the app, it never talks to
-          # Supabase at build time. Real deploys get real values from
-          # Vercel's own project env vars, set separately in its dashboard.
+          # it never talks to Supabase at build time. Real deploys get real
+          # values from Vercel's own project env vars, set in its dashboard.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
