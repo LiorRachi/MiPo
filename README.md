@@ -20,13 +20,14 @@ for the validated design decisions this implements.
    ```
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   SUPABASE_SECRET_KEY=your-secret-key
    ```
    Get the first two from **Connect** near the top of your Supabase project
    dashboard (older projects may call the second one the **anon public** key
-   under Settings → API — same thing). Get the service-role key from
-   Settings → API → **service_role** / secret key. That last one must stay
-   server-only — note it has no `NEXT_PUBLIC_` prefix, unlike the other two,
+   under Settings → API — same thing). Get the secret key from
+   Settings → API → **secret key** (older projects may call this the
+   **service_role** key instead — same thing, just the pre-2026 name). That
+   last one must stay server-only — note it has no `NEXT_PUBLIC_` prefix, unlike the other two,
    so Next.js never bundles it into client-side JS. `.env.local` is
    gitignored; never commit any of these.
 4. **Install dependencies and apply the database schema:**

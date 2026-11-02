@@ -9,9 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:link": "supabase link",
-    "db:push": "supabase db push --project-ref eiykhrhdkhmjerdhsirf",
-    "db:pull": "supabase db pull --project-ref eiykhrhdkhmjerdhsirf",
-    "db:diff": "supabase db diff --project-ref eiykhrhdkhmjerdhsirf",
+    "db:push": "supabase db push --project-ref gjvokeizyofvygsegtmx",
+    "db:pull": "supabase db pull --project-ref gjvokeizyofvygsegtmx",
+    "db:diff": "supabase db diff --project-ref gjvokeizyofvygsegtmx",
     "db:push:prod": "supabase db push --project-ref pftmsfcnxbpimiclmyrv",
     "db:pull:prod": "supabase db pull --project-ref pftmsfcnxbpimiclmyrv",
     "db:migration:new": "supabase migration new"
