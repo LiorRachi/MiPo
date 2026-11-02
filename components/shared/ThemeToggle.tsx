@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { THEME_STORAGE_KEY, type ThemePreference } from "@/lib/utils/theme";
+import { THEME_STORAGE_KEY, syncThemeColorMeta, type ThemePreference } from "@/lib/utils/theme";
 
 const OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: "light", label: "בהיר" },
@@ -15,6 +15,7 @@ function applyTheme(pref: ThemePreference) {
   } else {
     document.documentElement.setAttribute("data-theme", pref);
   }
+  syncThemeColorMeta(pref);
 }
 
 function subscribe(onChange: () => void) {

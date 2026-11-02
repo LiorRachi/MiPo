@@ -13,8 +13,13 @@ self.addEventListener("push", (event) => {
   const title = data.title || "MiPo";
   const options = {
     body: data.body || "",
-    icon: "/icon.svg",
-    badge: "/icon.svg",
+    // Android's notification tray needs raster icons — an SVG here silently
+    // renders as a blank/default icon on Chrome for Android. icon-192 is
+    // the full-color app icon shown in the notification body; badge-96 is
+    // a white-on-transparent silhouette (Android recolors it itself for
+    // the status-bar icon, so it must not carry any real color/background).
+    icon: "/icon-192.png",
+    badge: "/badge-96.png",
     data: { url: data.url || "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));
