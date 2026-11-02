@@ -4,8 +4,8 @@
   "description": "מעקב בקשות חופשה לצוות",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f5f6f8",
-  "theme_color": "#f5f6f8",
+  "background_color": "#6b7280",
+  "theme_color": "#6b7280",
   "dir": "rtl",
   "lang": "he",
   "icons": [
