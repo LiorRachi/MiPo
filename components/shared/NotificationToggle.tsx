@@ -19,32 +19,31 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 
 type Status = "idle" | "subscribed" | "unsupported" | "denied";
 
-function initialStatus(): Status {
-  if (typeof window === "undefined") return "idle";
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported";
-  if (typeof Notification !== "undefined" && Notification.permission === "denied") {
-    return "denied";
-  }
-  return "idle";
-}
-
 export default function NotificationToggle() {
-  const [status, setStatus] = useState<Status>(initialStatus);
+  // Always starts "idle" on both server and first client render — browser
+  // support, permission, and any existing subscription are all client-only
+  // facts, resolved below in an effect (which only ever runs on the
+  // client, after hydration) rather than branched on during the initial
+  // render, which would make the server and client disagree on that first
+  // render and trigger a hydration-mismatch error.
+  const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // initialStatus() only knows the permission, not whether a subscription
-  // from an earlier visit still exists — check for one once the service
-  // worker is ready, so a reload doesn't show "הפעלת התראות" again for an
-  // already-subscribed browser.
   useEffect(() => {
-    if (status !== "idle" || !("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.ready.then((registration) =>
-      registration.pushManager.getSubscription().then((subscription) => {
-        if (subscription) setStatus("subscribed");
-      }),
-    );
-  }, [status]);
+    async function resolveStatus(): Promise<Status> {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        return "unsupported";
+      }
+      if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+        return "denied";
+      }
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      return subscription ? "subscribed" : "idle";
+    }
+    resolveStatus().then(setStatus);
+  }, []);
 
   function enable() {
     if (!VAPID_PUBLIC_KEY) {
