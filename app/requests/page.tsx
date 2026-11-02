@@ -84,19 +84,19 @@ export default async function Requests({
         const lt = leaveTypeById.get(r.leave_type_id);
         return {
           id: r.id,
-          employee_name: r.employee_name,
-          label_he: lt?.label_he ?? "",
-          color_key: lt?.color_key ?? "other",
+          employeeName: r.employee_name,
+          labelHe: lt?.label_he ?? "",
+          colorKey: lt?.color_key ?? "other",
           reason: r.reason,
           status: r.status,
-          leave_type_id: r.leave_type_id,
+          leaveTypeId: r.leave_type_id,
           date: r.start_date,
-          end_date: r.end_date,
-          decided_by_name: r.decided_by_name,
-          decided_at: r.decided_at,
+          endDate: r.end_date,
+          decidedByName: r.decided_by_name,
+          decidedAt: r.decided_at,
         };
       })
-      .sort((a, b) => a.employee_name.localeCompare(b.employee_name, "he"));
+      .sort((a, b) => a.employeeName.localeCompare(b.employeeName, "he"));
   }
 
   const calDays: CalDay[] = days.map((d) => {

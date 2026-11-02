@@ -1,5 +1,5 @@
 import type { CurrentUser } from "@/lib/auth/auth";
-import { normailzeFieldValue } from "@/lib/utils/formUtils";
+import { normalizeFieldValue } from "@/lib/utils/formUtils";
 import { fetchAllUsers } from "@/lib/auth/users";
 
 // The employee_name a non-admin submits is never trusted (a disabled/hidden
@@ -32,7 +32,7 @@ export async function resolveEmployeeName(
     return { employeeName: currentUser.displayName, profileId: currentUser.id };
   }
 
-  const submitted = normailzeFieldValue(formData, "employee_name");
+  const submitted = normalizeFieldValue(formData, "employee_name");
   if (!submitted) return { error: "נא לבחור שם חייל/ת" };
 
   const profiles = await fetchAllUsers(currentUser).catch(() => null);

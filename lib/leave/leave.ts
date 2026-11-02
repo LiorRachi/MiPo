@@ -9,6 +9,9 @@ import type { LeaveRequest, LeaveType } from "./leaveRules";
 // the Server Components/Actions that already import everything from "./leave".
 export * from "./leaveRules";
 
+const LEAVE_REQUEST_COLUMNS =
+  "id, employee_name, profile_id, leave_type_id, start_date, end_date, reason, status, decided_by_name, decided_at";
+
 export async function fetchLeaveTypes(): Promise<LeaveType[]> {
   const supabase = await createClient();
   if (!supabase) return [];
@@ -35,9 +38,7 @@ export async function fetchRequestsInRange(
   if (!supabase) return [];
   let query = supabase
     .from("leave_requests")
-    .select(
-      "id, employee_name, profile_id, leave_type_id, start_date, end_date, reason, status, decided_by_name, decided_at",
-    )
+    .select(LEAVE_REQUEST_COLUMNS)
     .is("deleted_at", null)
     .lte("start_date", rangeEnd)
     .gte("end_date", rangeStart);
@@ -61,9 +62,7 @@ export async function fetchApprovedRequestsInRange(
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("leave_requests")
-    .select(
-      "id, employee_name, profile_id, leave_type_id, start_date, end_date, reason, status, decided_by_name, decided_at",
-    )
+    .select(LEAVE_REQUEST_COLUMNS)
     .eq("status", "approved")
     .is("deleted_at", null)
     .lte("start_date", rangeEnd)

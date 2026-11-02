@@ -33,3 +33,18 @@ export async function createClient() {
     },
   });
 }
+
+export type SupabaseServerClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
+
+/** Shared by every Server Action that just needs "a configured client" before
+ * doing its own thing (auth check, validation, etc.) — the one not-configured
+ * message so it can't drift between call sites. */
+export async function requireSupabaseClient(): Promise<
+  { error: string } | { supabase: SupabaseServerClient }
+> {
+  const supabase = await createClient();
+  if (!supabaseConfigured || !supabase) {
+    return { error: "Supabase לא מחובר עדיין." };
+  }
+  return { supabase };
+}

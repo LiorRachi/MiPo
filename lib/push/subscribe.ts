@@ -1,7 +1,7 @@
 "use server";
 
 import { getCurrentUser } from "@/lib/auth/auth";
-import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { requireSupabaseClient } from "@/lib/supabase/server";
 
 export type PushSubscriptionInput = {
   endpoint: string;
@@ -16,10 +16,9 @@ export type PushSubscriptionInput = {
 export async function subscribeToPush(
   subscription: PushSubscriptionInput,
 ): Promise<{ error?: string }> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const currentUser = await getCurrentUser();
   if (!currentUser) return { error: "יש להתחבר מחדש." };

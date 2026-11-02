@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { requireSupabaseClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/auth";
 import { logAdminAction } from "@/lib/auth/auditLog";
@@ -26,10 +26,9 @@ export async function addLeaveType(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const labelHe = String(formData.get("label_he") ?? "").trim();
   const colorKey = String(formData.get("color_key") ?? "").trim();
@@ -68,10 +67,9 @@ export async function updateLeaveType(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const id = String(formData.get("id") ?? "").trim();
   const labelHe = String(formData.get("label_he") ?? "").trim();
@@ -108,10 +106,9 @@ export async function reorderLeaveTypes(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const results = await Promise.all(
     orderedIds.map((id, index) =>
@@ -132,10 +129,9 @@ export async function deleteLeaveType(
   const auth = await requireAdmin();
   if ("error" in auth) return { error: auth.error };
 
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "שגיאה — חסר מזהה" };
@@ -151,7 +147,7 @@ export async function deleteLeaveType(
     .eq("leave_type_id", id)
     .not("deleted_at", "is", null);
 
-  if (purgeError) return { error: purgeError.message }
+  if (purgeError) return { error: purgeError.message };
 
   const { error } = await supabase.from("leave_types").delete().eq("id", id);
 

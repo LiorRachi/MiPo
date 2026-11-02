@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { getCurrentUser, requireAdmin, type CurrentUser } from "@/lib/auth/auth";
-import { normailzeFieldValue } from "@/lib/utils/formUtils";
+import { normalizeFieldValue } from "@/lib/utils/formUtils";
 import { resolveEmployeeName } from "@/lib/leave/resolveEmployeeName";
-import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import {
+  createClient,
+  requireSupabaseClient,
+  supabaseConfigured,
+  type SupabaseServerClient,
+} from "@/lib/supabase/server";
 import type { LeaveRequestStatus } from "@/lib/leave/leave";
 import { isRangeBoundaryHidden } from "@/lib/leave/leaveRules";
 import { notifyAdminsOfNewRequest, notifyEmployeeOfDecision } from "@/lib/push/notify";
@@ -21,24 +26,12 @@ function revalidateLeaveRequestConsumers() {
   revalidatePath("/requests");
 }
 
-type SupabaseClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
-
-async function requireSupabaseClient(): Promise<
-  { error: string } | { supabase: SupabaseClient }
-> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
-  return { supabase };
-}
-
 // Shared by every action below that just needs "a logged-in user, writing
 // through a configured client" — addLeaveRequest is the only one that opts
 // out, since its not-configured message points admins at the setup
 // instructions shown on that same page.
 async function requireSessionAndSupabase(): Promise<
-  { error: string } | { supabase: SupabaseClient; currentUser: CurrentUser }
+  { error: string } | { supabase: SupabaseServerClient; currentUser: CurrentUser }
 > {
   const clientResult = await requireSupabaseClient();
   if ("error" in clientResult) return clientResult;
@@ -59,10 +52,10 @@ function parseRequestFields(
     endDate: string;
     reason: string | null;
   } {
-  const leaveTypeId = normailzeFieldValue(formData, "leave_type_id");
-  const date = normailzeFieldValue(formData, "date");
-  const endDateRaw = normailzeFieldValue(formData, "end_date");
-  const reason = normailzeFieldValue(formData, "reason");
+  const leaveTypeId = normalizeFieldValue(formData, "leave_type_id");
+  const date = normalizeFieldValue(formData, "date");
+  const endDateRaw = normalizeFieldValue(formData, "end_date");
+  const reason = normalizeFieldValue(formData, "reason");
 
   const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -81,7 +74,7 @@ function parseRequestFields(
 // just steers the UI) — without this, a direct POST could still create a
 // request for a leave type that's entirely hidden across the submitted range.
 async function validateTypeDateCombo(
-  supabase: SupabaseClient,
+  supabase: SupabaseServerClient,
   leaveTypeId: string,
   date: string,
   endDate: string,

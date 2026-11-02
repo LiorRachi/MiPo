@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient, supabaseConfigured } from "@/lib/supabase/server";
+import { createClient, requireSupabaseClient } from "@/lib/supabase/server";
 
 export type LoginState = {
   error?: string;
@@ -48,10 +48,9 @@ export async function login(
   _prevState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
-  const supabase = await createClient();
-  if (!supabaseConfigured || !supabase) {
-    return { error: "Supabase לא מחובר עדיין." };
-  }
+  const clientResult = await requireSupabaseClient();
+  if ("error" in clientResult) return clientResult;
+  const { supabase } = clientResult;
 
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");

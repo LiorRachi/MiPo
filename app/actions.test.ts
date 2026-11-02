@@ -31,6 +31,10 @@ const { createClient } = vi.hoisted(() => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({
   createClient,
   supabaseConfigured: true,
+  requireSupabaseClient: async () => {
+    const supabase = await createClient();
+    return supabase ? { supabase } : { error: "Supabase לא מחובר עדיין." };
+  },
 }));
 
 const { addLeaveRequest, setLeaveRequestStatus } = await import("./actions");

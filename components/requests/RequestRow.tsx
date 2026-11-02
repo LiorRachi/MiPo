@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setLeaveRequestStatus } from "@/app/actions";
 import type { LeaveRequestStatus, LeaveType } from "@/lib/leave/leave";
+import type { DayEntry } from "@/components/calendar/MonthCalendar";
 import { formatDateRangeShortHe, formatFullDateHe, parseISODate } from "@/lib/utils/date";
 import { usePointerDrag } from "@/lib/hooks/usePointerDrag";
 import RequestSheet from "./RequestSheet";
@@ -66,34 +67,26 @@ function SwipeEditIndicator({
 }
 
 export default function RequestRow({
-  id,
-  employeeName,
-  labelHe,
-  colorKey,
-  reason,
-  status: initialStatus,
-  leaveTypeId,
-  date,
-  endDate,
-  decidedByName,
-  decidedAt,
+  entry: {
+    id,
+    employeeName,
+    labelHe,
+    colorKey,
+    reason,
+    status: initialStatus,
+    leaveTypeId,
+    date,
+    endDate,
+    decidedByName,
+    decidedAt,
+  },
   leaveTypes,
   onDeleted,
   isAdmin,
   employeeNames,
   currentUserDisplayName,
 }: {
-  id: string;
-  employeeName: string;
-  labelHe: string;
-  colorKey: string;
-  reason: string | null;
-  status: LeaveRequestStatus;
-  leaveTypeId: string;
-  date: string;
-  endDate: string;
-  decidedByName?: string | null;
-  decidedAt?: string | null;
+  entry: DayEntry;
   leaveTypes: LeaveType[];
   onDeleted?: (id: string, employeeName: string) => void;
   isAdmin: boolean;

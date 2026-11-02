@@ -18,16 +18,16 @@ export type CalDay = {
 
 export type DayEntry = {
   id: string;
-  employee_name: string;
-  label_he: string;
-  color_key: string;
+  employeeName: string;
+  labelHe: string;
+  colorKey: string;
   reason: string | null;
   status: LeaveRequestStatus;
-  leave_type_id: string;
+  leaveTypeId: string;
   date: string;
-  end_date: string;
-  decided_by_name: string | null;
-  decided_at: string | null;
+  endDate: string;
+  decidedByName: string | null;
+  decidedAt: string | null;
 };
 
 function chunk<T>(items: T[], size: number): T[][] {
@@ -93,7 +93,7 @@ export default function MonthCalendar({
             <div key={i} role="row" style={{ display: "contents" }}>
               {week.map((d) => {
                 const dots = (entriesByDay[d.iso] ?? []).map(
-                  (e) => e.color_key,
+                  (e) => e.colorKey,
                 );
                 return (
                   <button
@@ -144,17 +144,7 @@ export default function MonthCalendar({
             selectedEntries.map((e) => (
               <RequestRow
                 key={e.id}
-                id={e.id}
-                employeeName={e.employee_name}
-                labelHe={e.label_he}
-                colorKey={e.color_key}
-                reason={e.reason}
-                status={e.status}
-                leaveTypeId={e.leave_type_id}
-                date={e.date}
-                endDate={e.end_date}
-                decidedByName={e.decided_by_name}
-                decidedAt={e.decided_at}
+                entry={e}
                 leaveTypes={leaveTypes}
                 onDeleted={onRequestDeleted}
                 isAdmin={isAdmin}
