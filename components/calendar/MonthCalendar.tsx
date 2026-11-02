@@ -139,7 +139,7 @@ export default function MonthCalendar({
         <h4>{selectedDay?.label}</h4>
         <div className="day-detail-list">
           {selectedEntries.length === 0 ? (
-            <div className="empty-state">אין היעדרויות 🎉</div>
+            <div className="empty-state">אין היעדרויות</div>
           ) : (
             selectedEntries.map((e) => (
               <RequestRow

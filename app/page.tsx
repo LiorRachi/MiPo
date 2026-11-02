@@ -3,9 +3,8 @@ import Link from "next/link";
 import AddRequestSheet from "@/components/requests/AddRequestSheet";
 import AppHeader from "@/components/shared/AppHeader";
 import BottomNav from "@/components/shared/BottomNav";
-import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import ErrorScreen from "@/components/shared/ErrorScreen";
 import LeaveTypeLegend from "@/components/leave-types/LeaveTypeLegend";
-import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
 import WeekGrid from "@/components/calendar/WeekGrid";
 import { getCurrentUser } from "@/lib/auth/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
@@ -39,7 +38,7 @@ export default async function Home({
   const isCurrentWeek = isSameDay(start, weekStart(today));
 
   if (!supabaseConfigured) {
-    return <NotConfiguredScreen active="table" />;
+    return <ErrorScreen active="table" />;
   }
 
   const currentUser = await getCurrentUser();
@@ -54,7 +53,13 @@ export default async function Home({
       latestOwnDecisionAt(currentUser.id),
     ]);
   } catch {
-    return <FetchErrorScreen active="table" currentUserId={currentUser.id} />;
+    return (
+      <ErrorScreen
+        active="table"
+        currentUserId={currentUser.id}
+        userDisplayName={currentUser.displayName}
+      />
+    );
   }
   const { leaveTypes, requests, employeeNames } = data;
 

@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import AppHeader from "@/components/shared/AppHeader";
 import BottomNav from "@/components/shared/BottomNav";
-import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import ErrorScreen from "@/components/shared/ErrorScreen";
 import type { CalDay, DayEntry } from "@/components/calendar/MonthCalendar";
-import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
 import RequestsCalendar from "@/components/requests/RequestsCalendar";
 import { getCurrentUser } from "@/lib/auth/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
@@ -44,7 +43,7 @@ export default async function Requests({
   const monthKey = toISOMonth(month);
 
   if (!supabaseConfigured) {
-    return <NotConfiguredScreen active="requests" />;
+    return <ErrorScreen active="requests" />;
   }
 
   const currentUser = await getCurrentUser();
@@ -59,7 +58,13 @@ export default async function Requests({
       latestOwnDecisionAt(currentUser.id),
     ]);
   } catch {
-    return <FetchErrorScreen active="requests" currentUserId={currentUser.id} />;
+    return (
+      <ErrorScreen
+        active="requests"
+        currentUserId={currentUser.id}
+        userDisplayName={currentUser.displayName}
+      />
+    );
   }
   const { leaveTypes, requests, employeeNames } = data;
 

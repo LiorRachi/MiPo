@@ -4,10 +4,9 @@ import AddUserForm from "@/components/users/AddUserForm";
 import AppHeader from "@/components/shared/AppHeader";
 import BackButton from "@/components/shared/BackButton";
 import BottomNav from "@/components/shared/BottomNav";
-import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
+import ErrorScreen from "@/components/shared/ErrorScreen";
 import LeaveTypeList from "@/components/leave-types/LeaveTypeList";
 import LogoutButton from "@/components/auth/LogoutButton";
-import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
 import NotificationToggle from "@/components/shared/NotificationToggle";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import UserList from "@/components/users/UserList";
@@ -18,7 +17,7 @@ import { fetchAllUsers, type Profile } from "@/lib/auth/users";
 
 export default async function Settings() {
   if (!supabaseConfigured) {
-    return <NotConfiguredScreen active="settings" />;
+    return <ErrorScreen active="settings" />;
   }
 
   const currentUser = await getCurrentUser();
@@ -37,7 +36,13 @@ export default async function Settings() {
         fetchAllUsers(currentUser),
       ]);
     } catch {
-      return <FetchErrorScreen active="settings" currentUserId={currentUser.id} />;
+      return (
+        <ErrorScreen
+          active="settings"
+          currentUserId={currentUser.id}
+          userDisplayName={currentUser.displayName}
+        />
+      );
     }
   }
 

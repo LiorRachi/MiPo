@@ -21,13 +21,8 @@ export default async function AppHeader({
           MiPo <small>מי פה</small>
         </span>
       </div>
-      <div className="app-header-actions">
-        {!initial && showSettingsLink && (
-          <Link href="/settings" className="icon-btn" aria-label="הגדרות">
-            ⚙
-          </Link>
-        )}
-        {initial && (
+      {initial && (
+        <div className="app-header-actions">
           <span className="avatar-wrap">
             {showSettingsLink ? (
               <Link href="/settings" className="avatar-circle" aria-label="הגדרות">
@@ -48,8 +43,8 @@ export default async function AppHeader({
               </span>
             )}
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </header>
   );
 }

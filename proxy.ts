@@ -8,8 +8,8 @@ export async function proxy(request: NextRequest) {
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  // Not configured yet — let each page's own NotConfiguredScreen handle it
-  // instead of redirecting into a login page that can't work either.
+  // Not configured yet — let each page's own ErrorScreen handle it instead
+  // of redirecting into a login page that can't work either.
   if (!url || !key) return response;
 
   const supabase = createServerClient(url, key, {
