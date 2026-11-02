@@ -2,11 +2,11 @@
 
 import { useSyncExternalStore } from "react";
 
-// Per-device "unread" tracking for the בקשות tab's dot — deliberately not a
-// push notification (no service worker, no backend): just a reminder that
-// shows next time the app is opened if one of the user's own requests was
-// approved/denied since they last looked at the requests list. See the
-// notifications discussion this was scoped down from.
+// Per-device "unread" tracking for the בקשות tab's dot — lighter-weight than
+// the push notifications in lib/push/: just a reminder that shows next time
+// the app is opened if one of the user's own requests was approved/denied
+// since they last looked at the requests list, with no dependency on the
+// user having granted notification permission.
 function storageKey(userId: string): string {
   return `mipo:lastSeenDecisionAt:${userId}`;
 }

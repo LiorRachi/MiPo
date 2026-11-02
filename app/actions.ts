@@ -6,7 +6,9 @@ import { normailzeFieldValue } from "@/lib/utils/formUtils";
 import { resolveEmployeeName } from "@/lib/leave/resolveEmployeeName";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import type { LeaveRequestStatus } from "@/lib/leave/leave";
-import { isWeekend, parseISODate } from "@/lib/utils/date";
+import { isRangeBoundaryHidden } from "@/lib/leave/leaveRules";
+import { notifyAdminsOfNewRequest, notifyEmployeeOfDecision } from "@/lib/push/notify";
+import { parseISODate } from "@/lib/utils/date";
 
 export type AddRequestState = {
   error?: string;
@@ -53,10 +55,12 @@ function parseRequestFields(
   | {
     leaveTypeId: string;
     date: string;
+    endDate: string;
     reason: string | null;
   } {
   const leaveTypeId = normailzeFieldValue(formData, "leave_type_id");
   const date = normailzeFieldValue(formData, "date");
+  const endDateRaw = normailzeFieldValue(formData, "end_date");
   const reason = normailzeFieldValue(formData, "reason");
 
   const isoDate = /^\d{4}-\d{2}-\d{2}$/;
@@ -65,26 +69,36 @@ function parseRequestFields(
   if (!date) return { error: "נא לבחור תאריך" };
   if (!isoDate.test(date)) return { error: "פורמט תאריך לא תקין" };
 
-  return { leaveTypeId, date, reason: reason || null };
+  const endDate = endDateRaw || date;
+  if (!isoDate.test(endDate)) return { error: "פורמט תאריך לא תקין" };
+  if (endDate < date) return { error: "תאריך הסיום לא יכול להיות לפני תאריך ההתחלה" };
+
+  return { leaveTypeId, date, endDate, reason: reason || null };
 }
 
 // Mirrors the client-side guard in RequestSheet/RequestFormFields (which
 // just steers the UI) — without this, a direct POST could still create a
-// request for a leave type that doesn't apply on weekends.
+// request for a leave type that's entirely hidden across the submitted range.
 async function validateTypeDateCombo(
   supabase: SupabaseClient,
   leaveTypeId: string,
   date: string,
+  endDate: string,
 ): Promise<{ error: string } | null> {
   const { data: leaveType } = await supabase
     .from("leave_types")
-    .select("label_he, weekend_applicable")
+    .select("label_he, weekend_applicable, color_key, sort_order")
     .eq("id", leaveTypeId)
     .maybeSingle();
   if (!leaveType) return { error: "סוג חופשה לא נמצא" };
 
   const parsedDate = parseISODate(date);
-  if (parsedDate && isWeekend(parsedDate) && !leaveType.weekend_applicable) {
+  const parsedEndDate = parseISODate(endDate);
+  if (
+    parsedDate &&
+    parsedEndDate &&
+    isRangeBoundaryHidden({ ...leaveType, id: leaveTypeId }, parsedDate, parsedEndDate)
+  ) {
     return {
       error: `${leaveType.label_he} לא חל/ה בסופ״ש - בחרו סוג יציאה אחר או תאריך אחר.`,
     };
@@ -107,7 +121,12 @@ export async function addLeaveRequest(
   const parsed = parseRequestFields(formData);
   if ("error" in parsed) return parsed;
 
-  const conflict = await validateTypeDateCombo(supabase, parsed.leaveTypeId, parsed.date);
+  const conflict = await validateTypeDateCombo(
+    supabase,
+    parsed.leaveTypeId,
+    parsed.date,
+    parsed.endDate,
+  );
   if (conflict) return conflict;
 
   const nameResult = await resolveEmployeeName(formData, currentUser);
@@ -118,13 +137,14 @@ export async function addLeaveRequest(
     profile_id: nameResult.profileId,
     leave_type_id: parsed.leaveTypeId,
     start_date: parsed.date,
-    end_date: parsed.date,
+    end_date: parsed.endDate,
     reason: parsed.reason,
   });
 
   if (error) return { error: error.message };
 
   revalidateLeaveRequestConsumers();
+  await notifyAdminsOfNewRequest(nameResult.employeeName);
   return { ok: true };
 }
 
@@ -142,7 +162,12 @@ export async function updateLeaveRequest(
   const parsed = parseRequestFields(formData);
   if ("error" in parsed) return parsed;
 
-  const conflict = await validateTypeDateCombo(supabase, parsed.leaveTypeId, parsed.date);
+  const conflict = await validateTypeDateCombo(
+    supabase,
+    parsed.leaveTypeId,
+    parsed.date,
+    parsed.endDate,
+  );
   if (conflict) return conflict;
 
   const updatePayload: {
@@ -155,7 +180,7 @@ export async function updateLeaveRequest(
   } = {
     leave_type_id: parsed.leaveTypeId,
     start_date: parsed.date,
-    end_date: parsed.date,
+    end_date: parsed.endDate,
     reason: parsed.reason,
   };
 
@@ -287,7 +312,7 @@ export async function setLeaveRequestStatus(
     })
     .eq("id", id)
     .is("deleted_at", null)
-    .select("id");
+    .select("id, profile_id");
 
   if (error) return { error: error.message };
   if (!data || data.length === 0) {
@@ -295,5 +320,6 @@ export async function setLeaveRequestStatus(
   }
 
   revalidateLeaveRequestConsumers();
+  await notifyEmployeeOfDecision(data[0].profile_id, status);
   return {};
 }

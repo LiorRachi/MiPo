@@ -1,4 +1,4 @@
-import { isVisibleOnDay, type LeaveType } from "@/lib/leave/leaveRules";
+import { isRangeBoundaryHidden, isVisibleOnDay, type LeaveType } from "@/lib/leave/leaveRules";
 
 export default function RequestFormFields({
   leaveTypes,
@@ -8,6 +8,9 @@ export default function RequestFormFields({
   date,
   onDateChange,
   parsedDate,
+  endDate,
+  onEndDateChange,
+  parsedEndDate,
   defaultReason,
   isAdmin,
   employeeNames,
@@ -20,6 +23,9 @@ export default function RequestFormFields({
   date: string;
   onDateChange: (value: string) => void;
   parsedDate: Date | null;
+  endDate: string;
+  onEndDateChange: (value: string) => void;
+  parsedEndDate: Date | null;
   defaultReason?: string | null;
   isAdmin: boolean;
   employeeNames: string[];
@@ -74,7 +80,12 @@ export default function RequestFormFields({
         <label>סוג חופשה</label>
         <div className="type-pick">
           {leaveTypes.map((lt) => {
-            const blocked = parsedDate ? !isVisibleOnDay(lt, parsedDate) : false;
+            const blocked =
+              parsedDate && parsedEndDate
+                ? isRangeBoundaryHidden(lt, parsedDate, parsedEndDate)
+                : parsedDate
+                  ? !isVisibleOnDay(lt, parsedDate)
+                  : false;
             return (
               <button
                 type="button"
@@ -98,6 +109,18 @@ export default function RequestFormFields({
           type="date"
           value={date}
           onChange={(e) => onDateChange(e.target.value)}
+          required
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="end_date">עד תאריך</label>
+        <input
+          id="end_date"
+          name="end_date"
+          type="date"
+          value={endDate}
+          min={date}
+          onChange={(e) => onEndDateChange(e.target.value)}
           required
         />
       </div>

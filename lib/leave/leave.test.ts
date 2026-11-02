@@ -4,6 +4,7 @@ import {
   attendanceForDay,
   formatAttendanceList,
   isApprovedOnDay,
+  isRangeBoundaryHidden,
   isVisibleOnDay,
   type LeaveRequest,
   type LeaveType,
@@ -55,6 +56,58 @@ describe("isVisibleOnDay", () => {
   it("is hidden on the weekend when weekend_applicable is false", () => {
     expect(isVisibleOnDay(leaveType({ weekend_applicable: false }), FRIDAY)).toBe(false);
     expect(isVisibleOnDay(leaveType({ weekend_applicable: false }), SATURDAY)).toBe(false);
+  });
+});
+
+describe("isRangeBoundaryHidden", () => {
+  it("is false for a single weekday", () => {
+    expect(isRangeBoundaryHidden(leaveType({ weekend_applicable: false }), DAY, DAY)).toBe(
+      false,
+    );
+  });
+
+  it("is true when both boundaries are hidden", () => {
+    expect(
+      isRangeBoundaryHidden(leaveType({ weekend_applicable: false }), FRIDAY, SATURDAY),
+    ).toBe(true);
+  });
+
+  // Regression: a weekend-inapplicable type's end date could be set to a
+  // Friday/Saturday — the range wasn't "entirely hidden" (the start was a
+  // visible weekday), so it slipped through, even though the stored range
+  // then silently includes a day the type never actually applies to.
+  it("is true when only the end boundary is hidden, even with a visible start", () => {
+    // Thursday through Saturday: Thursday is visible, but the end (Saturday)
+    // isn't.
+    const thursday = new Date(2026, 9, 29);
+    expect(
+      isRangeBoundaryHidden(leaveType({ weekend_applicable: false }), thursday, SATURDAY),
+    ).toBe(true);
+  });
+
+  it("is true when only the start boundary is hidden, even with a visible end", () => {
+    // Friday through Sunday: the start (Friday) is hidden, Sunday isn't.
+    const sunday = new Date(2026, 10, 1);
+    expect(
+      isRangeBoundaryHidden(leaveType({ weekend_applicable: false }), FRIDAY, sunday),
+    ).toBe(true);
+  });
+
+  it("is false when both boundaries are visible, even if the range crosses a hidden weekend", () => {
+    // Thursday through Sunday: the weekend in between is hidden, but both
+    // boundaries are visible weekdays — a legitimate "out through the
+    // weekend" request.
+    const thursday = new Date(2026, 9, 29);
+    const sunday = new Date(2026, 10, 1);
+    expect(
+      isRangeBoundaryHidden(leaveType({ weekend_applicable: false }), thursday, sunday),
+    ).toBe(false);
+  });
+
+  it("is false for a weekend-applicable type across a weekend range", () => {
+    expect(
+      isRangeBoundaryHidden(leaveType({ weekend_applicable: true }), FRIDAY, SATURDAY),
+    ).toBe(false);
   });
 });
 

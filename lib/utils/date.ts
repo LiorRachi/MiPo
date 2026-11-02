@@ -105,6 +105,16 @@ export function formatFullDateHe(d: Date): string {
   return `${d.getDate()} ${HEBREW_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** Short numeric range label for a multi-day request, e.g. "1–5/11" (same
+ * month) or "28/10–2/11" (spanning months). Callers only use this when
+ * `start !== end`; a single-day request has no range to label. */
+export function formatDateRangeShortHe(start: Date, end: Date): string {
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.getDate()}–${end.getDate()}/${end.getMonth() + 1}`;
+  }
+  return `${start.getDate()}/${start.getMonth() + 1}–${end.getDate()}/${end.getMonth() + 1}`;
+}
+
 export function monthStart(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }

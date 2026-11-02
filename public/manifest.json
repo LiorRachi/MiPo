@@ -1,0 +1,19 @@
+{
+  "name": "MiPo · מי פה",
+  "short_name": "MiPo",
+  "description": "מעקב בקשות חופשה לצוות",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f6fed",
+  "dir": "rtl",
+  "lang": "he",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

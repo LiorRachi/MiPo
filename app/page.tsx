@@ -9,7 +9,7 @@ import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
 import WeekGrid from "@/components/calendar/WeekGrid";
 import { getCurrentUser } from "@/lib/auth/auth";
 import { supabaseConfigured } from "@/lib/supabase/server";
-import { fetchLeavePageData, latestOwnDecisionAt, type LeavePageData } from "@/lib/leave/leave";
+import { fetchWeekPageData, latestOwnDecisionAt, type LeavePageData } from "@/lib/leave/leave";
 import {
   addDays,
   formatWeekRangeHe,
@@ -50,7 +50,7 @@ export default async function Home({
   let latestDecisionAt: string | null;
   try {
     [data, latestDecisionAt] = await Promise.all([
-      fetchLeavePageData(rangeStart, rangeEnd, currentUser),
+      fetchWeekPageData(rangeStart, rangeEnd, currentUser),
       latestOwnDecisionAt(currentUser.id),
     ]);
   } catch {

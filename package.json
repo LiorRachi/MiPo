@@ -9,9 +9,11 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:link": "supabase link",
-    "db:push": "supabase db push",
-    "db:pull": "supabase db pull",
-    "db:diff": "supabase db diff",
+    "db:push": "supabase db push --project-ref eiykhrhdkhmjerdhsirf",
+    "db:pull": "supabase db pull --project-ref eiykhrhdkhmjerdhsirf",
+    "db:diff": "supabase db diff --project-ref eiykhrhdkhmjerdhsirf",
+    "db:push:prod": "supabase db push --project-ref qjemowvvtbfnoxbeilxp",
+    "db:pull:prod": "supabase db pull --project-ref qjemowvvtbfnoxbeilxp",
     "db:migration:new": "supabase migration new"
   },
   "dependencies": {
@@ -20,12 +22,14 @@
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "supabase": "^2.122.0",

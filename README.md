@@ -14,7 +14,9 @@ for the validated design decisions this implements.
    There's no sign-up screen in the app either way, but this closes the
    underlying Auth API too — accounts are created only by an admin, from
    Settings (or the bootstrap script below).
-3. **Environment variables:** create a `.env.local` file in the project root with:
+3. **Environment variables:** `.env.local` should point at the **dev** project
+   (MiPo-dev), not prod — see [Dev vs. prod database](#dev-vs-prod-database) below.
+   Create a `.env.local` file in the project root with:
    ```
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
@@ -39,7 +41,22 @@ for the validated design decisions this implements.
    ```bash
    node --env-file=.env.local scripts/create-admin.mjs you@example.com a-strong-password "Your Name"
    ```
-6. **Run it:**
+6. **(Optional) Push notifications:** generate a VAPID keypair —
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+   and add it to `.env.local`:
+   ```
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY=the-public-key
+   VAPID_PRIVATE_KEY=the-private-key
+   VAPID_SUBJECT=mailto:you@example.com
+   ```
+   The public key needs the `NEXT_PUBLIC_` prefix since
+   `components/shared/NotificationToggle.tsx` also reads it client-side to
+   subscribe; the private key must never get that prefix. Without these
+   three set, the "הפעלת התראות" button in Settings shows an error instead
+   of subscribing, but everything else in the app works unaffected.
+7. **Run it:**
    ```bash
    npm run dev
    ```
@@ -48,19 +65,40 @@ for the validated design decisions this implements.
 
 Until the env vars are set, the app shows a setup notice instead of the grid.
 
+## Dev vs. prod database
+
+There are two Supabase projects: **MiPo** (prod — whatever's actually deployed reads
+from this one) and **MiPo-dev** (local development and manual testing). `.env.local`
+should always point at MiPo-dev, never at prod — that's what keeps testing (creating
+throwaway requests, trying to break login lockout, etc.) from touching real data.
+
+`npm run db:*` scripts default to **MiPo-dev** (`--project-ref` is baked into each
+script in `package.json`). Pushing a schema change to prod is a separate, explicit
+step so it can't happen by accident:
+
+```bash
+npm run db:push        # applies supabase/migrations/ to MiPo-dev
+npm run db:push:prod   # applies the same migrations to MiPo (prod) — run this once
+                        # you've verified the change against dev
+```
+
+`db:pull`/`db:pull:prod` are the read-only equivalents, if you ever need to diff
+against one side by hand.
+
 ## Database migrations
 
 The schema lives in [`supabase/migrations/`](supabase/migrations/), applied with the
 [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
 (installed as a dev dependency, run via `npx supabase` or the `npm run db:*` scripts
-below) — not by re-running a hand-edited SQL file.
+above) — not by re-running a hand-edited SQL file.
 
 To change the schema:
 
 ```bash
 npm run db:migration:new -- a_short_description   # creates supabase/migrations/<timestamp>_a_short_description.sql
 # edit that file
-npm run db:push                                    # applies it to the linked project
+npm run db:push                                    # applies it to MiPo-dev first
+npm run db:push:prod                               # then to prod, once it's verified
 ```
 
 Every schema change is a new migration file; existing migration files are never edited
@@ -106,3 +144,27 @@ connection isn't covered here — verify those by hand in the running app.
 - Leave types live in the `leave_types` table — add a row there to add a new type;
   pick a `color_key` that has a matching `--leave-<color_key>` token in
   `app/globals.css` (currently `vacation`, `medical`, `other`, `green`, `teal`, `rose`).
+- **Push notifications** (`lib/push/`): opt-in per device, enabled from Settings
+  → "הפעלת התראות". Admins get pushed on every new request; the submitting
+  employee gets pushed when their request is approved/denied. Sending is
+  always best-effort — a missing VAPID config or a failed send never fails
+  the action that triggered it. Requires the service worker at `public/sw.js`
+  (also used for PWA installability via `public/manifest.json`).
+- **Security hardening:**
+  - Security headers + a baseline CSP are set in `next.config.ts` (CSP allows
+    `'unsafe-inline'` for script/style, since Next's own hydration scripts
+    are inline and there's no nonce-based setup — a stricter nonce-based CSP
+    is a possible future upgrade).
+  - Login lockout (`login_attempts` table, enforced in `app/login/actions.ts`):
+    5 consecutive failed logins for an email locks it out for 15 minutes.
+    Same generic error message either way, so a lockout can't be used to
+    confirm an account exists.
+  - Every admin action (user/leave-type create/update/delete) is recorded to
+    `admin_audit_log` via `lib/auth/auditLog.ts`. There's no UI to view it
+    yet — it's captured so the history exists once one is built.
+  - **Known limitations, not yet addressed:** no MFA (a full TOTP
+    enrollment/challenge flow is a larger separate feature); an admin-initiated
+    password reset doesn't invalidate the target user's other active
+    sessions — `@supabase/auth-js`'s admin API has no "revoke all sessions for
+    this user id" method (`admin.signOut` takes a specific JWT, not a user
+    id), so this isn't cleanly fixable without a fragile workaround.

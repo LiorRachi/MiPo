@@ -65,7 +65,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg).*)",
-  ],
+  // Excludes any path whose last segment has a file extension (manifest.json,
+  // sw.js, icon.svg, favicon.ico, and anything else dropped into public/
+  // later) rather than naming each one — a logged-in-only app has no real
+  // route that looks like a filename, so this is a safe general rule, not
+  // just these specific files today.
+  matcher: ["/((?!_next/static|_next/image|.*\\.).*)"],
 };

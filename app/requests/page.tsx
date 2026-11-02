@@ -86,6 +86,7 @@ export default async function Requests({
           status: r.status,
           leave_type_id: r.leave_type_id,
           date: r.start_date,
+          end_date: r.end_date,
           decided_by_name: r.decided_by_name,
           decided_at: r.decided_at,
         };

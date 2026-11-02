@@ -1140,6 +1140,12 @@ select {
   font-weight: 600;
 }
 
+.req-row-range {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
 .req-row-meta {
   display: flex;
   align-items: center;

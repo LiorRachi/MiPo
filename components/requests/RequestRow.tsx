@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { setLeaveRequestStatus } from "@/app/actions";
 import type { LeaveRequestStatus, LeaveType } from "@/lib/leave/leave";
-import { formatFullDateHe } from "@/lib/utils/date";
+import { formatDateRangeShortHe, formatFullDateHe, parseISODate } from "@/lib/utils/date";
 import { usePointerDrag } from "@/lib/hooks/usePointerDrag";
 import RequestSheet from "./RequestSheet";
 
@@ -74,6 +74,7 @@ export default function RequestRow({
   status: initialStatus,
   leaveTypeId,
   date,
+  endDate,
   decidedByName,
   decidedAt,
   leaveTypes,
@@ -90,6 +91,7 @@ export default function RequestRow({
   status: LeaveRequestStatus;
   leaveTypeId: string;
   date: string;
+  endDate: string;
   decidedByName?: string | null;
   decidedAt?: string | null;
   leaveTypes: LeaveType[];
@@ -168,6 +170,14 @@ export default function RequestRow({
           <div className="who">
             <span className={`dot ${colorKey}`} />
             {employeeName}
+            {date !== endDate &&
+              (() => {
+                const start = parseISODate(date);
+                const end = parseISODate(endDate);
+                return start && end ? (
+                  <span className="req-row-range">{formatDateRangeShortHe(start, end)}</span>
+                ) : null;
+              })()}
           </div>
           <div className="req-row-meta">
             {status !== "pending" && (
@@ -231,6 +241,7 @@ export default function RequestRow({
         requestId={id}
         defaultEmployeeName={employeeName}
         defaultDate={date}
+        defaultEndDate={endDate}
         defaultReason={reason}
         defaultLeaveTypeId={leaveTypeId}
         isAdmin={isAdmin}

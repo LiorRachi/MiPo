@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient, supabaseConfigured } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/auth";
+import { logAdminAction } from "@/lib/auth/auditLog";
 import { isValidColorKey } from "@/lib/leave/leaveTypeColors";
 import type { UserRole } from "@/lib/auth/users";
 
@@ -38,14 +39,23 @@ export async function addLeaveType(
   if (!labelHe) return { error: "נא להזין שם לסוג החופשה" };
   if (!isValidColorKey(colorKey)) return { error: "נא לבחור צבע" };
 
-  const { error } = await supabase.from("leave_types").insert({
-    label_he: labelHe,
-    color_key: colorKey,
-    sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
-    weekend_applicable: weekendApplicable,
-  });
+  const { data, error } = await supabase
+    .from("leave_types")
+    .insert({
+      label_he: labelHe,
+      color_key: colorKey,
+      sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+      weekend_applicable: weekendApplicable,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  await logAdminAction(auth.user, "leave_type.create", {
+    targetId: data.id,
+    detail: { label_he: labelHe, color_key: colorKey, weekend_applicable: weekendApplicable },
+  });
 
   revalidateLeaveTypeConsumers();
   return { ok: true };
@@ -82,6 +92,11 @@ export async function updateLeaveType(
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  await logAdminAction(auth.user, "leave_type.update", {
+    targetId: id,
+    detail: { label_he: labelHe, color_key: colorKey, weekend_applicable: weekendApplicable },
+  });
 
   revalidateLeaveTypeConsumers();
   return { ok: true };
@@ -147,6 +162,8 @@ export async function deleteLeaveType(
     }
     return { error: error.message };
   }
+
+  await logAdminAction(auth.user, "leave_type.delete", { targetId: id });
 
   revalidateLeaveTypeConsumers();
   return { ok: true };
@@ -220,6 +237,11 @@ export async function createUser(
     return { error: profileError.message };
   }
 
+  await logAdminAction(auth.user, "user.create", {
+    targetId: data.user.id,
+    detail: { email, display_name: displayName, role },
+  });
+
   revalidateUserConsumers();
   return { ok: true };
 }
@@ -268,6 +290,11 @@ export async function updateUser(
     .eq("id", id);
   if (error) return { error: error.message };
 
+  await logAdminAction(auth.user, "user.update", {
+    targetId: id,
+    detail: { display_name: displayName, role, password_changed: Boolean(password) },
+  });
+
   revalidateUserConsumers();
   return { ok: true };
 }
@@ -289,6 +316,8 @@ export async function deleteUser(
   // Deleting the auth user cascades to its profiles row (FK on delete cascade).
   const { error } = await admin.auth.admin.deleteUser(id);
   if (error) return { error: error.message };
+
+  await logAdminAction(auth.user, "user.delete", { targetId: id });
 
   revalidateUserConsumers();
   return { ok: true };

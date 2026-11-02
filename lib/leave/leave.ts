@@ -49,16 +49,40 @@ export async function fetchRequestsInRange(
   return data ?? [];
 }
 
+/** All approved, non-deleted requests in range, regardless of owner — the
+ * RLS policy allows any authenticated user to read an approved request
+ * (see migration 20261101114346), so this is the one case where a
+ * non-admin's fetch is intentionally unscoped by profile. */
+export async function fetchApprovedRequestsInRange(
+  rangeStart: string,
+  rangeEnd: string,
+): Promise<LeaveRequest[]> {
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("leave_requests")
+    .select(
+      "id, employee_name, profile_id, leave_type_id, start_date, end_date, reason, status, decided_by_name, decided_at",
+    )
+    .eq("status", "approved")
+    .is("deleted_at", null)
+    .lte("start_date", rangeEnd)
+    .gte("end_date", rangeStart)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export type LeavePageData = {
   leaveTypes: LeaveType[];
   requests: LeaveRequest[];
   employeeNames: string[];
 };
 
-/** The three fetches every top-level page needs — leave types, requests
- * scoped to the viewer (everyone's, for an admin; only their own otherwise),
+/** The three fetches `/requests` needs — leave types, requests scoped to the
+ * viewer (everyone's, for an admin; only their own otherwise, any status),
  * and the employee-name list an admin's "add request" picker needs — run in
- * parallel. Shared by `/` and `/requests`, which both need exactly this. */
+ * parallel. */
 export async function fetchLeavePageData(
   rangeStart: string,
   rangeEnd: string,
@@ -68,6 +92,32 @@ export async function fetchLeavePageData(
   const [leaveTypes, requests, profiles] = await Promise.all([
     fetchLeaveTypes(),
     fetchRequestsInRange(rangeStart, rangeEnd, isAdmin ? undefined : currentUser.id),
+    isAdmin ? fetchAllUsers(currentUser) : Promise.resolve([]),
+  ]);
+  return {
+    leaveTypes,
+    requests,
+    employeeNames: profiles.map((p) => p.display_name),
+  };
+}
+
+/** The same three fetches, but for `/` (the week-grid) — an admin still sees
+ * everyone's requests of any status, but a non-admin sees the whole team's
+ * *approved* requests (not just their own), matching the week-grid's
+ * original "who's out" purpose. Pending/denied requests stay private to
+ * their owner and admins; WeekGrid only ever renders approved ones anyway
+ * (see isApprovedOnDay), so this just gives it more to filter through. */
+export async function fetchWeekPageData(
+  rangeStart: string,
+  rangeEnd: string,
+  currentUser: CurrentUser,
+): Promise<LeavePageData> {
+  const isAdmin = currentUser.role === "admin";
+  const [leaveTypes, requests, profiles] = await Promise.all([
+    fetchLeaveTypes(),
+    isAdmin
+      ? fetchRequestsInRange(rangeStart, rangeEnd)
+      : fetchApprovedRequestsInRange(rangeStart, rangeEnd),
     isAdmin ? fetchAllUsers(currentUser) : Promise.resolve([]),
   ]);
   return {

@@ -8,6 +8,7 @@ import FetchErrorScreen from "@/components/shared/FetchErrorScreen";
 import LeaveTypeList from "@/components/leave-types/LeaveTypeList";
 import LogoutButton from "@/components/auth/LogoutButton";
 import NotConfiguredScreen from "@/components/shared/NotConfiguredScreen";
+import NotificationToggle from "@/components/shared/NotificationToggle";
 import ThemeToggle from "@/components/shared/ThemeToggle";
 import UserList from "@/components/users/UserList";
 import { getCurrentUser } from "@/lib/auth/auth";
@@ -54,6 +55,9 @@ export default async function Settings() {
 
       <h2 className="page-title">תצוגה</h2>
       <ThemeToggle />
+
+      <h2 className="page-title">התראות</h2>
+      <NotificationToggle />
 
       {isAdmin && (
         <>

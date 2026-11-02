@@ -7,7 +7,7 @@ import {
   updateLeaveRequest,
   type AddRequestState,
 } from "@/app/actions";
-import { isVisibleOnDay, type LeaveType } from "@/lib/leave/leaveRules";
+import { isRangeBoundaryHidden, type LeaveType } from "@/lib/leave/leaveRules";
 import { parseISODate, toISODate } from "@/lib/utils/date";
 import { usePointerDrag } from "@/lib/hooks/usePointerDrag";
 import RequestFormFields from "./RequestFormFields";
@@ -33,6 +33,7 @@ const RequestSheetForm = memo(function RequestSheetForm({
   requestId,
   defaultEmployeeName,
   defaultDate,
+  defaultEndDate,
   defaultReason,
   defaultLeaveTypeId,
   isAdmin,
@@ -47,6 +48,7 @@ const RequestSheetForm = memo(function RequestSheetForm({
   requestId?: string;
   defaultEmployeeName?: string;
   defaultDate: string;
+  defaultEndDate: string;
   defaultReason?: string | null;
   defaultLeaveTypeId?: string;
   isAdmin: boolean;
@@ -56,8 +58,26 @@ const RequestSheetForm = memo(function RequestSheetForm({
   const initialType = defaultLeaveTypeId ?? leaveTypes[0]?.id ?? "";
   const [selectedType, setSelectedType] = useState(initialType);
   const [date, setDate] = useState(defaultDate);
+  // Once a request already spans a real range, editing the start date
+  // shouldn't collapse the end date back to match it — only a fresh "add"
+  // (or a legacy single-day request) links the two until the user edits the
+  // end date independently.
+  const [endDateTouched, setEndDateTouched] = useState(
+    defaultEndDate !== defaultDate,
+  );
+  const [endDate, setEndDate] = useState(defaultEndDate);
+
+  function handleDateChange(value: string) {
+    setDate(value);
+    if (!endDateTouched) setEndDate(value);
+  }
+  function handleEndDateChange(value: string) {
+    setEndDateTouched(true);
+    setEndDate(value);
+  }
 
   const parsedDate = parseISODate(date);
+  const parsedEndDate = parseISODate(endDate);
   const selectedLeaveType = leaveTypes.find((lt) => lt.id === selectedType);
   // A pre-existing request can already be an invalid type/date combo (the
   // type's weekend rule changed after it was created, say) — only block
@@ -65,11 +85,17 @@ const RequestSheetForm = memo(function RequestSheetForm({
   // unrelated field (e.g. the reason) on an already-invalid legacy request
   // still works. In "add" mode every combo is user-introduced.
   const dateOrTypeChanged =
-    mode === "add" || selectedType !== initialType || date !== defaultDate;
+    mode === "add" ||
+    selectedType !== initialType ||
+    date !== defaultDate ||
+    endDate !== defaultEndDate;
   const typeDateConflict =
-    dateOrTypeChanged && selectedLeaveType && parsedDate
-      ? !isVisibleOnDay(selectedLeaveType, parsedDate)
+    dateOrTypeChanged && selectedLeaveType && parsedDate && parsedEndDate
+      ? isRangeBoundaryHidden(selectedLeaveType, parsedDate, parsedEndDate)
       : false;
+  const rangeInvalid = Boolean(
+    parsedDate && parsedEndDate && parsedEndDate < parsedDate,
+  );
 
   const [state, formAction, pending] = useActionState(
     async (prevState: AddRequestState, formData: FormData) => {
@@ -105,6 +131,9 @@ const RequestSheetForm = memo(function RequestSheetForm({
           או תאריך אחר.
         </div>
       )}
+      {rangeInvalid && (
+        <div className="form-error">תאריך הסיום לא יכול להיות לפני תאריך ההתחלה.</div>
+      )}
       <form action={formAction}>
         {mode === "edit" && <input type="hidden" name="id" value={requestId} />}
         <input type="hidden" name="leave_type_id" value={selectedType} />
@@ -114,8 +143,11 @@ const RequestSheetForm = memo(function RequestSheetForm({
           onSelectType={setSelectedType}
           defaultEmployeeName={defaultEmployeeName}
           date={date}
-          onDateChange={setDate}
+          onDateChange={handleDateChange}
           parsedDate={parsedDate}
+          endDate={endDate}
+          onEndDateChange={handleEndDateChange}
+          parsedEndDate={parsedEndDate}
           defaultReason={defaultReason}
           isAdmin={isAdmin}
           employeeNames={employeeNames}
@@ -139,7 +171,7 @@ const RequestSheetForm = memo(function RequestSheetForm({
           <button
             type="submit"
             className="btn primary"
-            disabled={pending || isDeleting || typeDateConflict}
+            disabled={pending || isDeleting || typeDateConflict || rangeInvalid}
           >
             {pending ? "שומר..." : "שמירה"}
           </button>
@@ -159,6 +191,7 @@ export default function RequestSheet({
   requestId,
   defaultEmployeeName,
   defaultDate,
+  defaultEndDate,
   defaultReason,
   defaultLeaveTypeId,
   isAdmin,
@@ -174,6 +207,7 @@ export default function RequestSheet({
   requestId?: string;
   defaultEmployeeName?: string;
   defaultDate?: string;
+  defaultEndDate?: string;
   defaultReason?: string | null;
   defaultLeaveTypeId?: string;
   isAdmin: boolean;
@@ -181,6 +215,7 @@ export default function RequestSheet({
   currentUserDisplayName: string;
 }) {
   const date = defaultDate ?? toISODate(new Date());
+  const endDate = defaultEndDate ?? date;
 
   const { offset: sheetDragY, bind: sheetHandleBind } = usePointerDrag({
     axis: "y",
@@ -217,6 +252,7 @@ export default function RequestSheet({
             requestId={requestId}
             defaultEmployeeName={defaultEmployeeName}
             defaultDate={date}
+            defaultEndDate={endDate}
             defaultReason={defaultReason}
             defaultLeaveTypeId={defaultLeaveTypeId}
             isAdmin={isAdmin}

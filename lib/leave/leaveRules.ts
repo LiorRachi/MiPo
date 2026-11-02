@@ -50,6 +50,22 @@ export function isApprovedOnDay(
   return request.start_date <= iso && request.end_date >= iso;
 }
 
+/** True if `leaveType` doesn't apply (per isVisibleOnDay) on the range's
+ * start or end day — the two boundaries a request actually commits to. A
+ * hidden day *inside* the range (e.g. a weekend crossed by a longer request)
+ * is fine and simply isn't shown/counted on the grid, matching how a
+ * multi-day request already renders; but a start or end boundary that's
+ * itself hidden has no visible effect (extending a weekend-inapplicable
+ * type's end date onto a Friday changes nothing shown) and just stores a
+ * misleading range, so it's blocked outright. */
+export function isRangeBoundaryHidden(
+  leaveType: LeaveType,
+  start: Date,
+  end: Date,
+): boolean {
+  return !isVisibleOnDay(leaveType, start) || !isVisibleOnDay(leaveType, end);
+}
+
 export type AttendanceEntry = { employeeName: string; labelHe: string };
 
 const PRESENT_LABEL_HE = "נוכח";

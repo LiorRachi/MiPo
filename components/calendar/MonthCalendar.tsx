@@ -25,6 +25,7 @@ export type DayEntry = {
   status: LeaveRequestStatus;
   leave_type_id: string;
   date: string;
+  end_date: string;
   decided_by_name: string | null;
   decided_at: string | null;
 };
@@ -151,6 +152,7 @@ export default function MonthCalendar({
                 status={e.status}
                 leaveTypeId={e.leave_type_id}
                 date={e.date}
+                endDate={e.end_date}
                 decidedByName={e.decided_by_name}
                 decidedAt={e.decided_at}
                 leaveTypes={leaveTypes}
