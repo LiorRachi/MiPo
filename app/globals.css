@@ -61,8 +61,10 @@
   --shadow-lg: 0 10px 24px rgba(20, 20, 30, 0.12);
 
   /* Height of the fixed .tabbar — single source of truth for anything that
-     needs to clear it (.app-shell padding, .fab/.toast position). */
-  --tabbar-height: 54px;
+     needs to clear it (.app-shell padding, .fab/.toast position). Includes
+     the gesture-nav safe area .tabbar now pads itself with (0 on devices
+     without one). */
+  --tabbar-height: calc(54px + env(safe-area-inset-bottom));
 
   color-scheme: light;
 }
@@ -526,6 +528,7 @@ select {
   bottom: 0;
   max-width: 480px;
   margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--color-border);
   background: var(--color-surface);
   z-index: 20;
