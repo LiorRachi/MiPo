@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { getCurrentUser, requireAdmin, type CurrentUser } from "@/lib/auth/auth";
 import { normailzeFieldValue } from "@/lib/utils/formUtils";
 import { resolveEmployeeName } from "@/lib/leave/resolveEmployeeName";
@@ -144,7 +145,7 @@ export async function addLeaveRequest(
   if (error) return { error: error.message };
 
   revalidateLeaveRequestConsumers();
-  await notifyAdminsOfNewRequest(nameResult.employeeName);
+  after(() => notifyAdminsOfNewRequest(nameResult.employeeName));
   return { ok: true };
 }
 
@@ -320,6 +321,6 @@ export async function setLeaveRequestStatus(
   }
 
   revalidateLeaveRequestConsumers();
-  await notifyEmployeeOfDecision(data[0].profile_id, status);
+  after(() => notifyEmployeeOfDecision(data[0].profile_id, status));
   return {};
 }

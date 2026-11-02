@@ -12,8 +12,8 @@
     "db:push": "supabase db push --project-ref eiykhrhdkhmjerdhsirf",
     "db:pull": "supabase db pull --project-ref eiykhrhdkhmjerdhsirf",
     "db:diff": "supabase db diff --project-ref eiykhrhdkhmjerdhsirf",
-    "db:push:prod": "supabase db push --project-ref qjemowvvtbfnoxbeilxp",
-    "db:pull:prod": "supabase db pull --project-ref qjemowvvtbfnoxbeilxp",
+    "db:push:prod": "supabase db push --project-ref pftmsfcnxbpimiclmyrv",
+    "db:pull:prod": "supabase db pull --project-ref pftmsfcnxbpimiclmyrv",
     "db:migration:new": "supabase migration new"
   },
   "dependencies": {

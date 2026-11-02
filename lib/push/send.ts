@@ -24,7 +24,9 @@ export type PushPayload = {
  * cleared, the app was uninstalled, or the user revoked permission) is
  * pruned so future sends don't keep retrying it; any other per-subscription
  * failure is swallowed, since one dead endpoint must not stop the rest from
- * being notified. Callers use this fire-and-forget — see lib/push/notify.ts. */
+ * being notified. Callers run this inside next/server's after() rather than
+ * awaiting it inline, so the triggering action responds immediately — see
+ * app/actions.ts. */
 export async function sendPush(
   profileIds: string[],
   payload: PushPayload,
