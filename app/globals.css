@@ -178,11 +178,22 @@ select {
 .app-shell {
   max-width: 480px;
   margin: 0 auto;
-  min-height: 100vh;
+  height: 100dvh;
   background: var(--color-bg);
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
+}
+
+/* Everything between AppHeader and BottomNav/a FAB — the only part of the
+   page that scrolls, so the header and bottom nav stay put. */
+.app-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   padding-bottom: var(--tabbar-height);
 }
 
@@ -214,8 +225,9 @@ select {
   height: 32px;
   flex: none;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -233,18 +245,22 @@ select {
 
 .admin-badge {
   position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  color: var(--color-primary);
+  bottom: -4px;
+  right: -8px;
+  /* Lets a click land on the avatar link underneath instead of being
+     swallowed by the badge (or just selecting its text). */
+  pointer-events: none;
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 8px;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
   border: 1.5px solid var(--color-surface);
 }
 
@@ -327,6 +343,10 @@ select {
 
 .legend {
   display: flex;
+  /* A flex item with non-visible overflow gets an automatic min-height of 0
+     instead of its content size, so .app-main's flex column would crush
+     this to nothing (not just scroll it) once the page's content overflows. */
+  flex-shrink: 0;
   gap: 14px;
   padding: 9px 14px;
   background: var(--color-surface-alt);
@@ -334,6 +354,12 @@ select {
   font-size: 11px;
   color: var(--color-text-muted);
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.legend::-webkit-scrollbar {
+  display: none;
 }
 
 .legend span {
@@ -341,6 +367,7 @@ select {
   align-items: center;
   gap: 5px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .dot {
@@ -444,10 +471,33 @@ select {
   padding: 4px;
   min-height: 54px;
   background: var(--color-surface);
+  position: relative;
 }
 
 .day-cell.alt {
   background: var(--color-surface-alt);
+}
+
+/* Marks the row's leave type on its first (rightmost, in RTL) cell — an
+   absolutely positioned bar instead of a border, since a border-inline-start
+   here would miter against each cell's own border-bottom and leave a 1px
+   gray seam where the two meet. Shared with .req-row-color-bar (request
+   row) below, same 4px accent bar in an unrelated context. */
+.day-cell-color-bar,
+.req-row-color-bar {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  pointer-events: none;
+}
+
+/* bottom:-1px (matching the cell's own border-bottom width) extends the bar
+   past the cell's padding edge through that border, so adjacent rows' bars
+   butt up with no gap between them. */
+.day-cell-color-bar {
+  bottom: -1px;
 }
 
 .cell-stack {
@@ -717,6 +767,15 @@ select {
   resize: vertical;
 }
 
+/* A select with a value chosen reads as an active filter, not a plain
+   form field. */
+.field select.filter-active {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
@@ -818,6 +877,10 @@ select {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex: 1;
   padding: 11px;
   border-radius: var(--radius-sm);
@@ -848,9 +911,22 @@ select {
   border: 1px solid var(--color-border);
 }
 
+.btn.ghost:disabled {
+  opacity: 0.5;
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+.btn.active {
+  background: var(--color-primary);
+  color: #fff;
+  border: 1px solid var(--color-primary);
+}
+
 .btn.danger {
   background: var(--color-danger-bg);
   color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .btn.danger:disabled {
@@ -1046,16 +1122,28 @@ select {
 
 .cal-legend {
   display: flex;
+  /* See .legend's comment — same flex-shrink-crushes-overflow-auto gotcha. */
+  flex-shrink: 0;
   gap: 14px;
   padding: 10px 4px 0;
   font-size: 11px;
   color: var(--color-text-muted);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.cal-legend::-webkit-scrollbar {
+  display: none;
 }
 
 .cal-legend span {
   display: flex;
   align-items: center;
   gap: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .day-detail {
@@ -1089,6 +1177,14 @@ select {
      natural height when there are more than fit in .day-detail-list. */
   flex-shrink: 0;
 }
+
+/* Colored by the request's approval status (not its leave type — the
+   .type-tag pill already shows that) — lives inside .req-row-top (the part
+   that translates on swipe) instead of as .req-row's own border, so it
+   slides with the row's content instead of staying pinned to the static
+   frame. .req-row's overflow:hidden still clips its square corners to match
+   the card's rounding. Styling itself is shared with .day-cell-color-bar —
+   see that rule earlier in this file. */
 
 .req-row-swipe-area {
   position: relative;
@@ -1155,31 +1251,16 @@ select {
   gap: 6px;
 }
 
-.status-indicator {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.status-indicator.approved {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-}
-
-.status-indicator.denied {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-}
-
 .req-row-expand {
-  margin-top: 10px;
-  padding: 10px 12px 9px;
-  border-top: 1px solid var(--color-border);
+  /* padding, not margin — margin sits outside the element's own background
+     and would leave a sliver of the row's (transparent, so .day-detail's
+     plain) background showing between the tinted top button and this
+     tinted section. */
+  padding: 12px 12px 9px;
+  /* Anchors its own .req-row-color-bar, so the colored edge continues
+     uninterrupted from .req-row-top down through the expanded details
+     instead of stopping at the top row's own height. */
+  position: relative;
 }
 
 .req-reason {
@@ -1194,21 +1275,29 @@ select {
   color: var(--color-text-muted);
 }
 
+/* A single segmented toggle, not two independent buttons — one border
+   around the pair, a divider between segments, and the active segment
+   filled solid so the control reads as one widget with two positions. */
 .req-row-actions {
   display: flex;
-  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
   margin-top: 10px;
 }
 
 .status-btn {
   flex: 1;
-  border: 1px solid var(--color-border);
+  border: none;
   background: var(--color-surface);
-  border-radius: var(--radius-md);
   padding: 10px 0;
   font-size: 13px;
   font-weight: 700;
   color: var(--color-text-muted);
+}
+
+.status-btn + .status-btn {
+  border-inline-start: 1px solid var(--color-border);
 }
 
 .status-btn:disabled {
@@ -1216,16 +1305,17 @@ select {
   cursor: default;
 }
 
+/* Pinned to the light-mode shade rather than var(--color-success/-danger),
+   same reasoning as .type-tag above — dark mode lightens those tokens for
+   text-on-dark-background use, which fails as a background under white text. */
 .status-btn.approve.active {
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border-color: var(--color-success);
+  background: #1a9c6b;
+  color: #fff;
 }
 
 .status-btn.deny.active {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  background: #e5484d;
+  color: #fff;
 }
 
 .type-tag {
@@ -1235,34 +1325,39 @@ select {
   border-radius: var(--radius-full);
 }
 
+/* Solid (not pastel) fill — the row behind it now carries its own pastel
+   wash, so the tag needs real contrast to stay legible on top of it.
+   Pinned to the light-mode shade rather than var(--leave-X): dark mode
+   lightens that token so it reads against a dark background as text, which
+   is the opposite of what a white-text fill needs. */
 .type-tag.vacation {
-  background: var(--leave-vacation-bg);
-  color: var(--leave-vacation);
+  background: #2f6fed;
+  color: #fff;
 }
 
 .type-tag.medical {
-  background: var(--leave-medical-bg);
-  color: var(--leave-medical);
+  background: #d97706;
+  color: #fff;
 }
 
 .type-tag.other {
-  background: var(--leave-other-bg);
-  color: var(--leave-other);
+  background: #7c4dff;
+  color: #fff;
 }
 
 .type-tag.green {
-  background: var(--leave-green-bg);
-  color: var(--leave-green);
+  background: #16a34a;
+  color: #fff;
 }
 
 .type-tag.teal {
-  background: var(--leave-teal-bg);
-  color: var(--leave-teal);
+  background: #0e9488;
+  color: #fff;
 }
 
 .type-tag.rose {
-  background: var(--leave-rose-bg);
-  color: var(--leave-rose);
+  background: #db2777;
+  color: #fff;
 }
 
 /* Settings — leave-type management */
@@ -1271,6 +1366,32 @@ select {
   margin: 14px 14px 4px;
   font-size: var(--text-base);
   font-weight: 700;
+}
+
+/* Settings page's own section headers — a colored icon badge plus a bottom
+   rule, instead of .page-title's plain bold line, so תצוגה/התראות/ניהול/
+   חשבון read as distinct cards rather than one flat list. */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 14px 8px;
+  padding-bottom: 6px;
+  font-size: var(--text-base);
+  font-weight: 700;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-title-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 
 .back-button {
@@ -1301,8 +1422,6 @@ select {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  max-height: 380px;
-  overflow-y: auto;
 }
 
 .settings-row {
@@ -1312,17 +1431,52 @@ select {
   padding: 12px;
 }
 
+/* The admin "ניהול" cards on /settings (an <a>) and the minimal, click-to-
+   edit leave-type/user rows (a <button>): an icon badge or color dot, a
+   label, and a disclosure chevron. No tag qualifier — two classes already
+   out-specifies a.settings-row's own display:block, and dropping the tag
+   lets the same rule apply to both elements. */
+.settings-row.settings-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font: inherit;
+  text-align: inherit;
+}
+
+.settings-nav-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.settings-nav-label {
+  flex: 1;
+}
+
+.settings-nav-chevron {
+  color: var(--color-text-faint);
+  font-size: 16px;
+}
+
 .settings-row-item {
   position: relative;
 }
 
 .settings-row-item .settings-row {
-  padding-left: 38px;
+  padding-right: 38px;
 }
 
 .drag-handle {
   position: absolute;
-  left: 6px;
+  right: 6px;
   top: 0;
   bottom: 0;
   width: 28px;
@@ -1352,37 +1506,288 @@ select {
   margin: 4px 14px 14px;
 }
 
-.settings-row-form {
+/* LogoutButton's own row is a <form> wrapping one button — unlike the <div>
+   usages of .settings-standalone-row elsewhere, it needs to actually be a
+   flex container for the button's flex:1 to make it full-width. */
+form.settings-standalone-row {
+  display: flex;
+}
+
+/* The logout button is the only full-width .btn sitting directly on the
+   page (every other row/card on /settings is a --radius-lg card) — match
+   that rounding instead of the smaller one .btn uses inside tighter rows. */
+form.settings-standalone-row .btn {
+  border-radius: var(--radius-lg);
+}
+
+/* A .settings-row used as a plain navigation link (the admin section's
+   "ניהול" cards on /settings) instead of a form row — anchors are inline by
+   default, which would shrink the padded/bordered box to fit its text. */
+a.settings-row {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Scrolls on its own, independent of .app-main — so BackButton/title/filters
+   above it stay put while just the row list scrolls. */
+.audit-log-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.audit-log-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin: 0 14px 14px;
 }
 
-.settings-row-bottom {
+.audit-log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.audit-log-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.audit-log-icon.create {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.audit-log-icon.update {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.audit-log-icon.delete {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.audit-log-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-log-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.audit-log-action {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.audit-log-time {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+.audit-log-meta {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* /overview's filter bar — an employee picker (admin only) and a fixed
+   range toggle (reuses .type-pick's button look, same as the add-request
+   leave-type picker). */
+.overview-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 10px 14px 4px;
+}
+
+.overview-filters .field {
+  flex: 1;
+  min-width: 120px;
+  margin-bottom: 0;
+}
+
+.overview-filters .type-pick {
+  flex: 2;
+  min-width: 220px;
+}
+
+.overview-filters .sort-toggle {
+  width: 100%;
+}
+
+.overview-filters .filters-reset {
+  flex: none;
+}
+
+/* Audit Log's filter bar has 4 fields plus apply/reset buttons — squeezed
+   into .overview-filters' flex-wrap row it read as cramped, so it gets its
+   own card (collapsible — the list can get long, and the card takes real
+   space) and a 2-column grid instead. */
+.audit-log-filters-card {
+  margin: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  /* Without this, overflow:hidden gives this flex item an automatic
+     min-height of 0, so .app-main's flex column silently crushes it to
+     nothing (expanded fields included) once the page's content overflows,
+     instead of just scrolling past it. */
+  flex-shrink: 0;
+}
+
+.audit-log-filters-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.audit-log-filters-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.audit-log-filters-chevron {
+  color: var(--color-text-faint);
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+
+.audit-log-filters-chevron.open {
+  transform: rotate(90deg);
+}
+
+.audit-log-filters-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.audit-log-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 12px;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.audit-log-filters-actions {
+  grid-column: 1 / -1;
+  display: flex;
   gap: 10px;
 }
 
-.settings-label-input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13.5px;
-  background: var(--color-surface);
-  color: var(--color-text);
+.audit-log-filters-actions .btn {
+  flex: 1;
 }
 
-.settings-label-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
+.overview-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 8px 14px 14px;
 }
 
-.settings-row-actions {
+.overview-stat-tile {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.overview-stat-number {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.overview-stat-label {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.overview-stat-tile.vacation {
+  background: var(--leave-vacation-bg);
+  color: var(--leave-vacation);
+  border: 1px solid var(--leave-vacation);
+}
+
+.overview-stat-tile.medical {
+  background: var(--leave-medical-bg);
+  color: var(--leave-medical);
+  border: 1px solid var(--leave-medical);
+}
+
+.overview-stat-tile.other {
+  background: var(--leave-other-bg);
+  color: var(--leave-other);
+  border: 1px solid var(--leave-other);
+}
+
+.overview-stat-tile.green {
+  background: var(--leave-green-bg);
+  color: var(--leave-green);
+  border: 1px solid var(--leave-green);
+}
+
+.overview-stat-tile.teal {
+  background: var(--leave-teal-bg);
+  color: var(--leave-teal);
+  border: 1px solid var(--leave-teal);
+}
+
+.overview-stat-tile.rose {
+  background: var(--leave-rose-bg);
+  color: var(--leave-rose);
+  border: 1px solid var(--leave-rose);
 }
 
 .color-pick {
@@ -1391,21 +1796,63 @@ select {
   flex-wrap: wrap;
 }
 
-.checkbox-field {
+.switch-field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
   color: var(--color-text);
   margin-bottom: 14px;
   cursor: pointer;
 }
 
-.checkbox-field input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary);
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+  transition: background 0.15s ease;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: inset-inline-start 0.15s ease;
+}
+
+.switch input:checked ~ .switch-track {
+  background: var(--color-primary);
+}
+
+.switch input:checked ~ .switch-track .switch-thumb {
+  inset-inline-start: 20px;
+}
+
+.switch input:focus-visible ~ .switch-track {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .swatch {
@@ -1426,69 +1873,62 @@ select {
   border-color: var(--color-text);
 }
 
-.settings-add-toggle {
-  display: flex;
+.admin-pill {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: calc(100% - 28px);
-  margin: 4px 14px 14px;
-  padding: 12px;
-  border: 1.5px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: 13.5px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
-.settings-add-toggle:hover {
+.settings-row-admin {
   border-color: var(--color-primary);
-  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
-.settings-add-toggle .plus {
-  font-size: 16px;
-  line-height: 1;
+/* Tone modifiers for the small icon badges on section headings
+   (.section-title-icon) and settings nav rows (.settings-nav-icon) — reuses
+   the leave-type palette for variety instead of every badge being the same
+   primary blue. */
+.section-title-icon.medical,
+.settings-nav-icon.medical {
+  background: var(--leave-medical-bg);
+  color: var(--leave-medical);
 }
 
-.settings-add-form {
-  margin: 4px 14px 14px;
-  padding: 14px;
+.section-title-icon.other,
+.settings-nav-icon.other {
+  background: var(--leave-other-bg);
+  color: var(--leave-other);
 }
 
-.settings-add-form-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
+.section-title-icon.teal,
+.settings-nav-icon.teal {
+  background: var(--leave-teal-bg);
+  color: var(--leave-teal);
 }
 
-.settings-add-form-head h3 {
-  margin: 0;
-  font-size: var(--text-base);
+.section-title-icon.rose,
+.settings-nav-icon.rose {
+  background: var(--leave-rose-bg);
+  color: var(--leave-rose);
 }
 
-.user-email {
-  font-size: 12px;
-  color: var(--color-text-muted);
+.section-title-icon.vacation,
+.settings-nav-icon.vacation {
+  background: var(--leave-vacation-bg);
+  color: var(--leave-vacation);
 }
 
-.role-select {
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 12.5px;
-  font-family: inherit;
-  color: var(--color-text);
-  background: var(--color-surface);
-}
-
-.role-select:disabled {
-  opacity: 0.6;
+.section-title-icon.green,
+.settings-nav-icon.green {
+  background: var(--leave-green-bg);
+  color: var(--leave-green);
 }
 
 .login-page {
@@ -1499,6 +1939,7 @@ select {
   justify-content: center;
   gap: 24px;
   padding: 24px 16px;
+  overflow-y: auto;
 }
 
 .login-brand {
@@ -1522,7 +1963,6 @@ select {
   margin-right: 8px;
 }
 
-.settings-add-form,
 .login-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);

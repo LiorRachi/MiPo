@@ -77,7 +77,7 @@ export default function RequestFormFields({
         )}
       </div>
       <div className="field">
-        <label>סוג חופשה</label>
+        <label>סוג בקשת יציאה</label>
         <div className="type-pick">
           {leaveTypes.map((lt) => {
             const blocked =

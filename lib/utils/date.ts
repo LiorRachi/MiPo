@@ -48,18 +48,25 @@ export function parseISODate(s: string): Date | null {
   return date;
 }
 
-/** Today's calendar date in Israel, independent of the server process's own
- * timezone (which may be UTC or anything else depending on where it runs). */
-export function todayInIsrael(): Date {
+/** Converts any instant (a Date, or an ISO string like a Postgres timestamptz
+ * column) to its calendar date in Israel, independent of the server
+ * process's own timezone (which may be UTC or anything else depending on
+ * where it runs). */
+export function toIsraelDate(d: Date | string): Date {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Jerusalem",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date());
+  }).formatToParts(typeof d === "string" ? new Date(d) : d);
   const get = (type: string) =>
     Number(parts.find((p) => p.type === type)?.value);
   return new Date(get("year"), get("month") - 1, get("day"));
+}
+
+/** Today's calendar date in Israel — see toIsraelDate. */
+export function todayInIsrael(): Date {
+  return toIsraelDate(new Date());
 }
 
 export function addDays(d: Date, n: number): Date {
@@ -103,6 +110,15 @@ export function formatWeekRangeHe(start: Date, end: Date): string {
 
 export function formatFullDateHe(d: Date): string {
   return `${d.getDate()} ${HEBREW_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Numeric dd/MM/yy, e.g. "03/11/26" — for dense lists (the audit log) where
+ * a typed-out date is too wide. */
+export function formatShortDateHe(d: Date): string {
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear() % 100).padStart(2, "0");
+  return `${day}/${month}/${year}`;
 }
 
 /** Short numeric range label for a multi-day request, e.g. "1–5/11" (same

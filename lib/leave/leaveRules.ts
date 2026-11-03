@@ -1,4 +1,4 @@
-import { isWeekend, toISODate } from "@/lib/utils/date";
+import { addDays, isWeekend, toISODate } from "@/lib/utils/date";
 
 // Pure leave-domain logic with no I/O — safe to import from Client
 // Components (unlike leave.ts, which pulls in the Supabase server client).
@@ -9,6 +9,10 @@ export type LeaveType = {
   color_key: string;
   sort_order: number;
   weekend_applicable: boolean;
+  // False for a type approved like any other but that isn't a whole-day
+  // absence (e.g. יציאה מוקדמת, הגעה מאוחרת) — not yet consumed by any
+  // calculation here; it exists for callers that need to tell the two apart.
+  full_day: boolean;
 };
 
 export type LeaveRequestStatus = "pending" | "approved" | "denied";
@@ -88,11 +92,15 @@ export function approvedRequestsByTypeForDay(
 
 /** The whole roster's status for a day, for the copy-to-clipboard attendance
  * list: each name in `employeeNames` paired with their approved leave
- * type(s)' label(s), or "נוכח" when they have none. Someone approved for two
- * different leave types the same day gets both labels (comma-joined) rather
- * than one silently overwriting the other. A name with an approved absence
- * but no matching roster entry (a removed/renamed profile) is still
- * appended, so a real recorded absence is never silently dropped. */
+ * type(s)' label(s), or "נוכח" when they have none. A type with
+ * full_day=false (יציאה מוקדמת, הגעה מאוחרת, ...) is skipped here — someone
+ * approved only for one of those is still counted as present for the day,
+ * even though the week-grid cell (approvedRequestsByTypeForDay, unaffected
+ * by this) still shows it. Someone approved for two different full-day
+ * types the same day gets both labels (comma-joined) rather than one
+ * silently overwriting the other. A name with an approved absence but no
+ * matching roster entry (a removed/renamed profile) is still appended, so a
+ * real recorded absence is never silently dropped. */
 export function attendanceFromApprovedByType(
   leaveTypes: LeaveType[],
   byType: Map<string, LeaveRequest[]>,
@@ -100,6 +108,7 @@ export function attendanceFromApprovedByType(
 ): AttendanceEntry[] {
   const labelsByName = new Map<string, string[]>();
   for (const lt of leaveTypes) {
+    if (!lt.full_day) continue;
     for (const r of byType.get(lt.id) ?? []) {
       const labels = labelsByName.get(r.employee_name) ?? [];
       if (!labels.includes(lt.label_he)) labels.push(lt.label_he);
@@ -135,4 +144,26 @@ export function attendanceForDay(
 
 export function formatAttendanceList(entries: AttendanceEntry[]): string {
   return entries.map((e) => `${e.employeeName} - ${e.labelHe}`).join("\n");
+}
+
+/** Approved days of each leave type within [start, end] (inclusive), for the
+ * given requests — built on the same isApprovedOnDay predicate the
+ * week-grid uses for a single day, summed across the range so the two can't
+ * drift on what counts as an approved day. Keyed by leave type id; every
+ * type in `leaveTypes` is present even at 0. */
+export function approvedDayCountsByType(
+  leaveTypes: LeaveType[],
+  requests: LeaveRequest[],
+  start: Date,
+  end: Date,
+): Map<string, number> {
+  const counts = new Map<string, number>(leaveTypes.map((lt) => [lt.id, 0]));
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    for (const lt of leaveTypes) {
+      if (requests.some((r) => isApprovedOnDay(r, lt, d))) {
+        counts.set(lt.id, (counts.get(lt.id) ?? 0) + 1);
+      }
+    }
+  }
+  return counts;
 }

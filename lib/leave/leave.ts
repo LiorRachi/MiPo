@@ -1,5 +1,5 @@
 import type { CurrentUser } from "@/lib/auth/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { fetchAllUsers } from "@/lib/auth/users";
 import type { LeaveRequest, LeaveType } from "./leaveRules";
 
@@ -17,7 +17,7 @@ export async function fetchLeaveTypes(): Promise<LeaveType[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("leave_types")
-    .select("id, label_he, color_key, sort_order, weekend_applicable")
+    .select("id, label_he, color_key, sort_order, weekend_applicable, full_day")
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -70,6 +70,36 @@ export async function fetchApprovedRequestsInRange(
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Whether `profileId` already has a non-deleted, non-denied request
+ * overlapping [date, endDate] — used to block double-booking the same
+ * person across two requests, even of different leave types. Pass
+ * `excludeId` when checking an edit, so a request doesn't collide with
+ * itself. A denied request never blocks (it was rejected, not taken), and a
+ * profile_id of null (legacy free-text names) is never checked here — there's
+ * no way to scope it without risking a false match across unrelated rows
+ * that all share a null profile_id. */
+export async function hasOverlappingRequest(
+  supabase: SupabaseServerClient,
+  profileId: string,
+  date: string,
+  endDate: string,
+  excludeId?: string,
+): Promise<boolean> {
+  let query = supabase
+    .from("leave_requests")
+    .select("id")
+    .eq("profile_id", profileId)
+    .is("deleted_at", null)
+    .neq("status", "denied")
+    .lte("start_date", endDate)
+    .gte("end_date", date)
+    .limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 export type LeavePageData = {

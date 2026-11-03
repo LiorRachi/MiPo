@@ -39,7 +39,7 @@ export default async function AppHeader({
             )}
             {isAdmin && (
               <span className="admin-badge" title="מנהל/ת" aria-label="מנהל/ת">
-                ★
+                מנהל
               </span>
             )}
           </span>

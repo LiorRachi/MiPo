@@ -17,6 +17,18 @@ export default function LeaveTypeList({
   const rowRefs = useRef(new Map<string, HTMLDivElement>());
   const [reorderError, setReorderError] = useAutoDismiss<string>(3000);
 
+  // Re-sync items when the server sends a fresh leaveTypes array (e.g. after
+  // an add/edit/delete revalidates this page) — adjusting state during
+  // render rather than in an effect, per
+  // https://react.dev/learn/you-might-not-need-an-effect. Without this,
+  // items stays frozen at its first-mount value forever since useState's
+  // initializer only runs once.
+  const [prevLeaveTypes, setPrevLeaveTypes] = useState(leaveTypes);
+  if (prevLeaveTypes !== leaveTypes) {
+    setPrevLeaveTypes(leaveTypes);
+    setItems(leaveTypes);
+  }
+
   function finishDrag() {
     if (!draggingId.current) return;
     draggingId.current = null;

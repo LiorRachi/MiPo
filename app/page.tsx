@@ -67,31 +67,33 @@ export default async function Home({
     <div className="app-shell">
       <AppHeader userDisplayName={currentUser.displayName} />
 
-      <div className="week-nav">
-        <Link href={`/?week=${prevWeek}`} aria-label="שבוע קודם">
-          ‹
-        </Link>
-        <div className="week-label">
-          {isCurrentWeek && <span className="today-pill">השבוע</span>}
-          {formatWeekRangeHe(days[0], days[6])}
+      <div className="app-main">
+        <div className="week-nav">
+          <Link href={`/?week=${prevWeek}`} aria-label="שבוע קודם">
+            ‹
+          </Link>
+          <div className="week-label">
+            {isCurrentWeek && <span className="today-pill">השבוע</span>}
+            {formatWeekRangeHe(days[0], days[6])}
+          </div>
+          <Link href={`/?week=${nextWeek}`} aria-label="שבוע הבא">
+            ›
+          </Link>
         </div>
-        <Link href={`/?week=${nextWeek}`} aria-label="שבוע הבא">
-          ›
-        </Link>
+
+        {leaveTypes.length > 0 && (
+          <LeaveTypeLegend leaveTypes={leaveTypes} className="legend" />
+        )}
+
+        <WeekGrid
+          leaveTypes={leaveTypes}
+          days={days}
+          requests={requests}
+          employeeNames={employeeNames}
+          today={today}
+          isAdmin={isAdmin}
+        />
       </div>
-
-      {leaveTypes.length > 0 && (
-        <LeaveTypeLegend leaveTypes={leaveTypes} className="legend" />
-      )}
-
-      <WeekGrid
-        leaveTypes={leaveTypes}
-        days={days}
-        requests={requests}
-        employeeNames={employeeNames}
-        today={today}
-        isAdmin={isAdmin}
-      />
 
       {leaveTypes.length > 0 && (
         <AddRequestSheet

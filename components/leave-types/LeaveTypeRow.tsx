@@ -1,16 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  deleteLeaveType,
-  updateLeaveType,
-  type LeaveTypeActionState,
-} from "@/app/settings/actions";
+import { useState } from "react";
 import type { LeaveType } from "@/lib/leave/leave";
-import { COLOR_LABELS_HE, LEAVE_TYPE_COLORS } from "@/lib/leave/leaveTypeColors";
-import { DeleteRowButton, SaveRowButton } from "@/components/shared/RowActionButtons";
-
-const initialState: LeaveTypeActionState = {};
+import LeaveTypeSheet from "./LeaveTypeSheet";
 
 export default function LeaveTypeRow({
   leaveType,
@@ -23,15 +15,7 @@ export default function LeaveTypeRow({
   onHandlePointerMove?: (e: React.PointerEvent<HTMLButtonElement>) => void;
   onHandlePointerUp?: (e: React.PointerEvent<HTMLButtonElement>) => void;
 }) {
-  const [color, setColor] = useState(leaveType.color_key);
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateLeaveType,
-    initialState,
-  );
-  const [deleteState, deleteAction, deletePending] = useActionState(
-    deleteLeaveType,
-    initialState,
-  );
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <div className="settings-row-item">
@@ -54,58 +38,31 @@ export default function LeaveTypeRow({
         </svg>
       </button>
 
-      <div className="settings-row">
-        <form action={updateAction} className="settings-row-form">
-          <input type="hidden" name="id" value={leaveType.id} />
-          <input type="hidden" name="color_key" value={color} />
-          <input
-            type="text"
-            name="label_he"
-            defaultValue={leaveType.label_he}
-            className="settings-label-input"
-            aria-label="שם סוג החופשה"
-          />
-          <label className="checkbox-field">
-            <input
-              type="checkbox"
-              name="weekend_applicable"
-              defaultChecked={leaveType.weekend_applicable}
-            />
-            חל גם בסופ&quot;ש (ו׳–ש׳)
-          </label>
-          <div className="settings-row-bottom">
-            <div className="color-pick">
-              {LEAVE_TYPE_COLORS.map((c) => (
-                <button
-                  type="button"
-                  key={c}
-                  className={`swatch${color === c ? " sel" : ""}`}
-                  style={{ background: `var(--leave-${c})` }}
-                  onClick={() => setColor(c)}
-                  aria-label={COLOR_LABELS_HE[c]}
-                  aria-pressed={color === c}
-                />
-              ))}
-            </div>
-            <div className="settings-row-actions">
-              <SaveRowButton disabled={updatePending} />
-              <DeleteRowButton
-                form={`delete-${leaveType.id}`}
-                disabled={deletePending}
-              />
-            </div>
-          </div>
-        </form>
-        <form id={`delete-${leaveType.id}`} action={deleteAction} hidden>
-          <input type="hidden" name="id" value={leaveType.id} />
-        </form>
-        {updateState.error && (
-          <div className="form-error">{updateState.error}</div>
-        )}
-        {deleteState.error && (
-          <div className="form-error">{deleteState.error}</div>
-        )}
-      </div>
+      <button
+        type="button"
+        className="settings-row settings-nav-row"
+        style={{
+          borderColor: `var(--leave-${leaveType.color_key})`,
+          backgroundColor: `var(--leave-${leaveType.color_key}-bg)`,
+        }}
+        onClick={() => setEditOpen(true)}
+      >
+        <span
+          className="settings-nav-label"
+          style={{ color: `var(--leave-${leaveType.color_key})` }}
+        >
+          {leaveType.label_he}
+        </span>
+        <span className="settings-nav-chevron">›</span>
+      </button>
+
+      <LeaveTypeSheet
+        mode="edit"
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSuccess={() => setEditOpen(false)}
+        leaveType={leaveType}
+      />
     </div>
   );
 }

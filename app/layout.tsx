@@ -5,7 +5,7 @@ import { LIGHT_THEME_COLOR, THEME_INIT_SCRIPT } from "@/lib/utils/theme";
 
 export const metadata: Metadata = {
   title: "MiPo · מי פה",
-  description: "מעקב בקשות חופשה לצוות",
+  description: "מעקב בקשות יציאה לצוות",
   manifest: "/manifest.json",
 };
 

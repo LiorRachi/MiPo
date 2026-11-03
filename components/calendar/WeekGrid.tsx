@@ -27,7 +27,7 @@ export default function WeekGrid({
     return (
       <div className="grid-wrap">
         <div className="empty-week">
-          אין עדיין סוגי חופשה. הוסיפו שורה ל-<code>leave_types</code> בסופאבייס.
+          אין עדיין סוגי בקשות יציאה. הוסיפו שורה ל-<code>leave_types</code> בסופאבייס.
         </div>
       </div>
     );
@@ -42,7 +42,7 @@ export default function WeekGrid({
 
   return (
     <div className="grid-wrap">
-      <div className="grid" role="table" aria-label="טבלת בקשות חופשה שבועית">
+      <div className="grid" role="table" aria-label="טבלת בקשות יציאה שבועית">
         <div role="row" style={{ display: "contents" }}>
           {days.map((d) => {
             const isToday = isSameDay(d, today);
@@ -83,7 +83,7 @@ export default function WeekGrid({
             aria-label={lt.label_he}
             style={{ display: "contents" }}
           >
-            {days.map((d) => {
+            {days.map((d, dayIndex) => {
               const people = byDayApprovals.get(toISODate(d))!.get(lt.id) ?? [];
               const names = people.map((p) => p.employee_name).join(", ");
               return (
@@ -93,6 +93,15 @@ export default function WeekGrid({
                   role="cell"
                   aria-label={`${lt.label_he}, ${formatDayLabelHe(d)}${names ? `: ${names}` : ""}`}
                 >
+                  {dayIndex === 0 && (
+                    // The first day column sits at the row's far (right, in
+                    // RTL) edge — a colored bar there marks the whole row's
+                    // leave type at a glance, without recoloring every cell.
+                    <div
+                      className="day-cell-color-bar"
+                      style={{ backgroundColor: `var(--leave-${lt.color_key})` }}
+                    />
+                  )}
                   <div className="cell-stack">
                     {people.map((p) => (
                       <div key={p.id} className={`chip ${lt.color_key}`}>

@@ -33,7 +33,7 @@ export default function AddRequestSheet({
       <button
         className="fab"
         onClick={() => setOpen(true)}
-        aria-label="הוספת בקשת חופשה"
+        aria-label="הוספת בקשת יציאה"
       >
         +
       </button>

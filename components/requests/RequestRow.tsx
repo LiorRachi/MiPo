@@ -8,16 +8,19 @@ import { formatDateRangeShortHe, formatFullDateHe, parseISODate } from "@/lib/ut
 import { usePointerDrag } from "@/lib/hooks/usePointerDrag";
 import RequestSheet from "./RequestSheet";
 
-const STATUS_ICON: Record<"approved" | "denied", string> = {
-  approved: "✓",
-  denied: "✕",
+const STATUS_BAR_COLOR: Record<LeaveRequestStatus, string> = {
+  pending: "var(--color-border-strong)",
+  approved: "var(--color-success)",
+  denied: "var(--color-danger)",
 };
 
 // Swipe-to-edit tuning: dragging a row left or right reveals edit behind it;
 // releasing past SWIPE_THRESHOLD opens the edit sheet (releasing short of it
 // snaps back, no action). TAP_SLOP just distinguishes a real swipe from a tap.
 const SWIPE_THRESHOLD = 72;
-const MAX_DRAG = 112;
+// Matches .req-row-swipe-action's rendered width (~83px for the "עריכה" label
+// + icon) so dragging to the max never reveals empty track past its edge.
+const MAX_DRAG = 84;
 const TAP_SLOP = 8;
 
 const EDIT_ICON_PATH = "M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z";
@@ -124,6 +127,11 @@ export default function RequestRow({
     setEditOpen(true);
   }
 
+  // Finalized requests can no longer be edited (or deleted, since that lives
+  // in the same sheet) — swiping is the only way to reach that sheet, so
+  // simply not binding the drag handlers blocks it entirely.
+  const editable = status !== "approved";
+
   const {
     offset: dragX,
     movedRef,
@@ -137,89 +145,97 @@ export default function RequestRow({
     onCommit: openEdit,
   });
 
-  return (
-    <div className="req-row">
-      <div className="req-row-swipe-area">
-        <div className="req-row-swipe-bg">
-          <SwipeEditIndicator
-            side="start"
-            progress={Math.max(0, -dragX) / SWIPE_THRESHOLD}
-          />
-          <SwipeEditIndicator
-            side="end"
-            progress={Math.max(0, dragX) / SWIPE_THRESHOLD}
-          />
-        </div>
-        <button
-          type="button"
-          className="req-row-top"
-          style={{ transform: `translateX(${dragX}px)` }}
-          {...bind}
-          onClick={() => {
-            if (!movedRef.current) setExpanded((e) => !e);
-          }}
-          aria-expanded={expanded}
-        >
-          <div className="who">
-            <span className={`dot ${colorKey}`} />
-            {employeeName}
-            {date !== endDate &&
-              (() => {
-                const start = parseISODate(date);
-                const end = parseISODate(endDate);
-                return start && end ? (
-                  <span className="req-row-range">{formatDateRangeShortHe(start, end)}</span>
-                ) : null;
-              })()}
-          </div>
-          <div className="req-row-meta">
-            {status !== "pending" && (
-              <span
-                className={`status-indicator ${status}`}
-                aria-label={status === "approved" ? "אושר" : "נדחה"}
-              >
-                {STATUS_ICON[status]}
-              </span>
-            )}
-            <span className={`type-tag ${colorKey}`}>{labelHe}</span>
-          </div>
-        </button>
-      </div>
+  const tintBackground = `color-mix(in srgb, ${STATUS_BAR_COLOR[status]} 7%, var(--color-surface))`;
 
-      {expanded && (reason || isAdmin || (status !== "pending" && decidedByName)) && (
-        <div className="req-row-expand">
-          {reason && <div className="req-reason">{reason}</div>}
-          {status !== "pending" && decidedByName && (
-            <div className="req-decided-by">
-              {status === "approved" ? "אושר" : "נדחה"} על ידי {decidedByName}
-              {decidedAt && ` · ${formatFullDateHe(new Date(decidedAt))}`}
+  return (
+    <>
+      <div className="req-row">
+        <div className="req-row-swipe-area">
+          <div className="req-row-swipe-bg">
+            <SwipeEditIndicator
+              side="start"
+              progress={Math.max(0, -dragX) / SWIPE_THRESHOLD}
+            />
+            <SwipeEditIndicator
+              side="end"
+              progress={Math.max(0, dragX) / SWIPE_THRESHOLD}
+            />
+          </div>
+          <button
+            type="button"
+            className="req-row-top"
+            style={{
+              transform: `translateX(${dragX}px)`,
+              backgroundColor: tintBackground,
+            }}
+            {...(editable ? bind : {})}
+            onClick={() => {
+              if (!movedRef.current) setExpanded((e) => !e);
+            }}
+            aria-expanded={expanded}
+          >
+            <div
+              className="req-row-color-bar"
+              style={{ backgroundColor: STATUS_BAR_COLOR[status] }}
+            />
+            <div className="who">
+              {employeeName}
+              {date !== endDate &&
+                (() => {
+                  const start = parseISODate(date);
+                  const end = parseISODate(endDate);
+                  return start && end ? (
+                    <span className="req-row-range">{formatDateRangeShortHe(start, end)}</span>
+                  ) : null;
+                })()}
             </div>
-          )}
-          {error && <div className="form-error">{error}</div>}
-          {isAdmin && (
-            <div className="req-row-actions">
-              <button
-                type="button"
-                className={`status-btn approve${status === "approved" ? " active" : ""}`}
-                onClick={() => toggleStatus("approved")}
-                aria-pressed={status === "approved"}
-                disabled={isPending}
-              >
-                ✓ אישור
-              </button>
-              <button
-                type="button"
-                className={`status-btn deny${status === "denied" ? " active" : ""}`}
-                onClick={() => toggleStatus("denied")}
-                aria-pressed={status === "denied"}
-                disabled={isPending}
-              >
-                ✕ דחייה
-              </button>
+            <div className="req-row-meta">
+              <span className={`type-tag ${colorKey}`}>{labelHe}</span>
             </div>
-          )}
+          </button>
         </div>
-      )}
+
+        {expanded && (reason || isAdmin || (status !== "pending" && decidedByName)) && (
+          <div className="req-row-expand" style={{ backgroundColor: tintBackground }}>
+            <div
+              className="req-row-color-bar"
+              style={{ backgroundColor: STATUS_BAR_COLOR[status] }}
+            />
+            {reason && <div className="req-reason">{reason}</div>}
+            {status !== "pending" && decidedByName && (
+              <div className="req-decided-by">
+                {status === "approved" ? "אושר" : "נדחה"} על ידי {decidedByName}
+                {decidedAt && ` · ${formatFullDateHe(new Date(decidedAt))}`}
+              </div>
+            )}
+            {error && <div className="form-error">{error}</div>}
+            {isAdmin && (
+              <div className="req-row-actions">
+                <button
+                  type="button"
+                  className={`status-btn approve${status === "approved" ? " active" : ""}`}
+                  onClick={() => toggleStatus("approved")}
+                  aria-pressed={status === "approved"}
+                  aria-label="אישור"
+                  disabled={isPending}
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  className={`status-btn deny${status === "denied" ? " active" : ""}`}
+                  onClick={() => toggleStatus("denied")}
+                  aria-pressed={status === "denied"}
+                  aria-label="דחייה"
+                  disabled={isPending}
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <RequestSheet
         mode="edit"
@@ -241,6 +257,6 @@ export default function RequestRow({
         employeeNames={employeeNames}
         currentUserDisplayName={currentUserDisplayName}
       />
-    </div>
+    </>
   );
 }

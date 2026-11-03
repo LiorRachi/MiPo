@@ -9,14 +9,10 @@ import {
 } from "@/app/actions";
 import { isRangeBoundaryHidden, type LeaveType } from "@/lib/leave/leaveRules";
 import { parseISODate, toISODate } from "@/lib/utils/date";
-import { usePointerDrag } from "@/lib/hooks/usePointerDrag";
+import Sheet from "@/components/shared/Sheet";
 import RequestFormFields from "./RequestFormFields";
 
 const initialState: AddRequestState = {};
-
-// Sheet swipe-to-dismiss tuning: dragging the handle down past this snaps
-// the sheet closed; short of it springs back open.
-const SHEET_DISMISS_THRESHOLD = 90;
 
 // All the per-open state (selected type, the add/update action's result,
 // delete error) lives here. It resets for free because the parent only
@@ -217,50 +213,26 @@ export default function RequestSheet({
   const date = defaultDate ?? toISODate(new Date());
   const endDate = defaultEndDate ?? date;
 
-  const { offset: sheetDragY, bind: sheetHandleBind } = usePointerDrag({
-    axis: "y",
-    min: 0,
-    max: Infinity,
-    threshold: SHEET_DISMISS_THRESHOLD,
-    onCommit: onClose,
-  });
-  const sheetDragging = sheetDragY !== 0;
-
   return (
-    <div
-      className={`sheet-backdrop${open ? " show" : ""}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="sheet"
-        style={
-          sheetDragging
-            ? { transform: `translateY(${sheetDragY}px)`, transition: "none" }
-            : undefined
-        }
-      >
-        <div className="sheet-handle" {...sheetHandleBind} />
-        {open && (
-          <RequestSheetForm
-            mode={mode}
-            onClose={onClose}
-            onSuccess={onSuccess}
-            onDeleted={onDeleted}
-            leaveTypes={leaveTypes}
-            requestId={requestId}
-            defaultEmployeeName={defaultEmployeeName}
-            defaultDate={date}
-            defaultEndDate={endDate}
-            defaultReason={defaultReason}
-            defaultLeaveTypeId={defaultLeaveTypeId}
-            isAdmin={isAdmin}
-            employeeNames={employeeNames}
-            currentUserDisplayName={currentUserDisplayName}
-          />
-        )}
-      </div>
-    </div>
+    <Sheet open={open} onClose={onClose}>
+      {open && (
+        <RequestSheetForm
+          mode={mode}
+          onClose={onClose}
+          onSuccess={onSuccess}
+          onDeleted={onDeleted}
+          leaveTypes={leaveTypes}
+          requestId={requestId}
+          defaultEmployeeName={defaultEmployeeName}
+          defaultDate={date}
+          defaultEndDate={endDate}
+          defaultReason={defaultReason}
+          defaultLeaveTypeId={defaultLeaveTypeId}
+          isAdmin={isAdmin}
+          employeeNames={employeeNames}
+          currentUserDisplayName={currentUserDisplayName}
+        />
+      )}
+    </Sheet>
   );
 }

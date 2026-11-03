@@ -15,6 +15,7 @@ export type LeaveTypeActionState = {
 
 function revalidateLeaveTypeConsumers() {
   revalidatePath("/settings");
+  revalidatePath("/settings/leave-types");
   revalidatePath("/");
   revalidatePath("/requests");
 }
@@ -34,8 +35,9 @@ export async function addLeaveType(
   const colorKey = String(formData.get("color_key") ?? "").trim();
   const sortOrder = Number(formData.get("sort_order") ?? 0);
   const weekendApplicable = formData.get("weekend_applicable") === "on";
+  const fullDay = formData.get("full_day") === "on";
 
-  if (!labelHe) return { error: "נא להזין שם לסוג החופשה" };
+  if (!labelHe) return { error: "נא להזין שם לסוג בקשת היציאה" };
   if (!isValidColorKey(colorKey)) return { error: "נא לבחור צבע" };
 
   const { data, error } = await supabase
@@ -45,6 +47,7 @@ export async function addLeaveType(
       color_key: colorKey,
       sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
       weekend_applicable: weekendApplicable,
+      full_day: fullDay,
     })
     .select("id")
     .single();
@@ -53,7 +56,12 @@ export async function addLeaveType(
 
   await logAdminAction(auth.user, "leave_type.create", {
     targetId: data.id,
-    detail: { label_he: labelHe, color_key: colorKey, weekend_applicable: weekendApplicable },
+    detail: {
+      label_he: labelHe,
+      color_key: colorKey,
+      weekend_applicable: weekendApplicable,
+      full_day: fullDay,
+    },
   });
 
   revalidateLeaveTypeConsumers();
@@ -75,9 +83,10 @@ export async function updateLeaveType(
   const labelHe = String(formData.get("label_he") ?? "").trim();
   const colorKey = String(formData.get("color_key") ?? "").trim();
   const weekendApplicable = formData.get("weekend_applicable") === "on";
+  const fullDay = formData.get("full_day") === "on";
 
   if (!id) return { error: "שגיאה — חסר מזהה" };
-  if (!labelHe) return { error: "נא להזין שם לסוג החופשה" };
+  if (!labelHe) return { error: "נא להזין שם לסוג בקשת היציאה" };
   if (!isValidColorKey(colorKey)) return { error: "נא לבחור צבע" };
 
   const { error } = await supabase
@@ -86,6 +95,7 @@ export async function updateLeaveType(
       label_he: labelHe,
       color_key: colorKey,
       weekend_applicable: weekendApplicable,
+      full_day: fullDay,
     })
     .eq("id", id);
 
@@ -93,7 +103,12 @@ export async function updateLeaveType(
 
   await logAdminAction(auth.user, "leave_type.update", {
     targetId: id,
-    detail: { label_he: labelHe, color_key: colorKey, weekend_applicable: weekendApplicable },
+    detail: {
+      label_he: labelHe,
+      color_key: colorKey,
+      weekend_applicable: weekendApplicable,
+      full_day: fullDay,
+    },
   });
 
   revalidateLeaveTypeConsumers();
@@ -154,7 +169,7 @@ export async function deleteLeaveType(
   if (error) {
     // 23503 = foreign key violation (leave_requests.leave_type_id references this row)
     if (error.code === "23503") {
-      return { error: "לא ניתן למחוק — קיימות בקשות חופשה מסוג זה" };
+      return { error: "לא ניתן למחוק — קיימות בקשות יציאה מסוג זה" };
     }
     return { error: error.message };
   }

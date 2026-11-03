@@ -21,7 +21,9 @@ export default function ErrorScreen({
         showSettingsLink={active !== "settings"}
         userDisplayName={userDisplayName}
       />
-      <div className="setup-notice">שגיאה — אנא חזרו מאוחר יותר.</div>
+      <div className="app-main">
+        <div className="setup-notice">שגיאה — אנא חזרו מאוחר יותר.</div>
+      </div>
       <BottomNav active={active} currentUserId={currentUserId} />
     </div>
   );

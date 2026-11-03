@@ -11,7 +11,7 @@ import {
   supabaseConfigured,
   type SupabaseServerClient,
 } from "@/lib/supabase/server";
-import type { LeaveRequestStatus } from "@/lib/leave/leave";
+import { hasOverlappingRequest, type LeaveRequestStatus } from "@/lib/leave/leave";
 import { isRangeBoundaryHidden } from "@/lib/leave/leaveRules";
 import { notifyAdminsOfNewRequest, notifyEmployeeOfDecision } from "@/lib/push/notify";
 import { parseISODate } from "@/lib/utils/date";
@@ -24,6 +24,15 @@ export type AddRequestState = {
 function revalidateLeaveRequestConsumers() {
   revalidatePath("/");
   revalidatePath("/requests");
+}
+
+// 23P01 = exclusion_violation: the leave_requests_no_overlap DB constraint,
+// the backstop for the race the hasOverlappingRequest pre-check can't fully
+// close (two requests both passing the check before either commits). Maps
+// to the same message the pre-check itself returns, instead of a raw
+// Postgres error reaching the user.
+function overlapErrorMessage(error: { code?: string; message: string }): string {
+  return error.code === "23P01" ? "קיימת בקשה חופפת בתאריכים אלו" : error.message;
 }
 
 // Shared by every action below that just needs "a logged-in user, writing
@@ -59,7 +68,7 @@ function parseRequestFields(
 
   const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
-  if (!leaveTypeId) return { error: "נא לבחור סוג חופשה" };
+  if (!leaveTypeId) return { error: "נא לבחור סוג בקשת יציאה" };
   if (!date) return { error: "נא לבחור תאריך" };
   if (!isoDate.test(date)) return { error: "פורמט תאריך לא תקין" };
 
@@ -81,10 +90,10 @@ async function validateTypeDateCombo(
 ): Promise<{ error: string } | null> {
   const { data: leaveType } = await supabase
     .from("leave_types")
-    .select("label_he, weekend_applicable, color_key, sort_order")
+    .select("label_he, weekend_applicable, color_key, sort_order, full_day")
     .eq("id", leaveTypeId)
     .maybeSingle();
-  if (!leaveType) return { error: "סוג חופשה לא נמצא" };
+  if (!leaveType) return { error: "סוג בקשת יציאה לא נמצא" };
 
   const parsedDate = parseISODate(date);
   const parsedEndDate = parseISODate(endDate);
@@ -126,6 +135,13 @@ export async function addLeaveRequest(
   const nameResult = await resolveEmployeeName(formData, currentUser);
   if ("error" in nameResult) return nameResult;
 
+  if (
+    nameResult.profileId &&
+    (await hasOverlappingRequest(supabase, nameResult.profileId, parsed.date, parsed.endDate))
+  ) {
+    return { error: "קיימת בקשה חופפת בתאריכים אלו" };
+  }
+
   const { error } = await supabase.from("leave_requests").insert({
     employee_name: nameResult.employeeName,
     profile_id: nameResult.profileId,
@@ -135,7 +151,7 @@ export async function addLeaveRequest(
     reason: parsed.reason,
   });
 
-  if (error) return { error: error.message };
+  if (error) return { error: overlapErrorMessage(error) };
 
   revalidateLeaveRequestConsumers();
   after(() => notifyAdminsOfNewRequest(nameResult.employeeName));
@@ -178,6 +194,12 @@ export async function updateLeaveRequest(
     reason: parsed.reason,
   };
 
+  // The profile this edit's overlap check (below) runs against: a non-admin
+  // can only ever be editing their own request (enforced by the .eq below),
+  // so it's always their own id; an admin may be reassigning it, in which
+  // case the *new* assignee is who must not be double-booked.
+  let profileIdForOverlap: string | null = currentUser.id;
+
   // Only an admin may reassign whose request this is; a non-admin editing a
   // request (even one of someone else's, opened from the day list) leaves
   // employee_name/profile_id untouched rather than silently reattributing it
@@ -201,6 +223,14 @@ export async function updateLeaveRequest(
     if ("error" in nameResult) return nameResult;
     updatePayload.employee_name = nameResult.employeeName;
     updatePayload.profile_id = nameResult.profileId;
+    profileIdForOverlap = nameResult.profileId;
+  }
+
+  if (
+    profileIdForOverlap &&
+    (await hasOverlappingRequest(supabase, profileIdForOverlap, parsed.date, parsed.endDate, id))
+  ) {
+    return { error: "קיימת בקשה חופפת בתאריכים אלו" };
   }
 
   let updateQuery = supabase
@@ -218,7 +248,7 @@ export async function updateLeaveRequest(
   }
   const { data, error } = await updateQuery.select("id");
 
-  if (error) return { error: error.message };
+  if (error) return { error: overlapErrorMessage(error) };
   if (!data || data.length === 0) {
     return { error: "הבקשה נמחקה ולא ניתן יותר לערוך אותה" };
   }

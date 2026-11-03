@@ -119,26 +119,28 @@ export default async function Requests({
     <div className="app-shell">
       <AppHeader userDisplayName={currentUser.displayName} />
 
-      {leaveTypes.length === 0 ? (
-        <div className="empty-week">
-          אין עדיין סוגי חופשה. הוסיפו שורה ל-<code>leave_types</code>{" "}
-          בסופאבייס.
-        </div>
-      ) : (
-        <RequestsCalendar
-          key={monthKey}
-          monthLabel={formatMonthHe(month)}
-          prevMonthHref={`/requests?month=${prevMonth}`}
-          nextMonthHref={`/requests?month=${nextMonth}`}
-          days={calDays}
-          entriesByDay={entriesByDay}
-          initialSelected={initialSelected}
-          leaveTypes={leaveTypes}
-          isAdmin={isAdmin}
-          employeeNames={employeeNames}
-          currentUserDisplayName={currentUser.displayName}
-        />
-      )}
+      <div className="app-main">
+        {leaveTypes.length === 0 ? (
+          <div className="empty-week">
+            אין עדיין סוגי בקשות יציאה. הוסיפו שורה ל-<code>leave_types</code>{" "}
+            בסופאבייס.
+          </div>
+        ) : (
+          <RequestsCalendar
+            key={monthKey}
+            monthLabel={formatMonthHe(month)}
+            prevMonthHref={`/requests?month=${prevMonth}`}
+            nextMonthHref={`/requests?month=${nextMonth}`}
+            days={calDays}
+            entriesByDay={entriesByDay}
+            initialSelected={initialSelected}
+            leaveTypes={leaveTypes}
+            isAdmin={isAdmin}
+            employeeNames={employeeNames}
+            currentUserDisplayName={currentUser.displayName}
+          />
+        )}
+      </div>
 
       <BottomNav
         active="requests"

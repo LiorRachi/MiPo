@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  approvedDayCountsByType,
   approvedRequestsByTypeForDay,
   attendanceForDay,
   formatAttendanceList,
@@ -17,6 +18,7 @@ function leaveType(overrides: Partial<LeaveType> = {}): LeaveType {
     color_key: "vacation",
     sort_order: 0,
     weekend_applicable: true,
+    full_day: true,
     ...overrides,
   };
 }
@@ -200,6 +202,23 @@ describe("attendanceForDay", () => {
     const entries = attendanceForDay([leaveType()], requests, ["דנה"], DAY);
     expect(entries).toEqual([{ employeeName: "דנה", labelHe: "חופשה" }]);
   });
+
+  it("counts someone approved only for a non-full-day type as present", () => {
+    const earlyLeave = leaveType({ label_he: "יציאה מוקדמת", full_day: false });
+    const entries = attendanceForDay([earlyLeave], [request()], ["דנה"], DAY);
+    expect(entries).toEqual([{ employeeName: "דנה", labelHe: "נוכח" }]);
+  });
+
+  it("still labels a non-full-day type alongside a full-day one for the same person", () => {
+    const vacation = leaveType({ id: "lt-vacation", label_he: "חופשה" });
+    const earlyLeave = leaveType({ id: "lt-early", label_he: "יציאה מוקדמת", full_day: false });
+    const requests = [
+      request({ id: "r-1", leave_type_id: "lt-vacation" }),
+      request({ id: "r-2", leave_type_id: "lt-early" }),
+    ];
+    const entries = attendanceForDay([vacation, earlyLeave], requests, ["דנה"], DAY);
+    expect(entries).toEqual([{ employeeName: "דנה", labelHe: "חופשה" }]);
+  });
 });
 
 describe("approvedRequestsByTypeForDay", () => {
@@ -214,6 +233,50 @@ describe("approvedRequestsByTypeForDay", () => {
     const lt = leaveType();
     const byType = approvedRequestsByTypeForDay([lt], [], DAY);
     expect(byType.get(lt.id)).toEqual([]);
+  });
+});
+
+describe("approvedDayCountsByType", () => {
+  it("counts every type at 0 when there are no requests", () => {
+    const lt = leaveType();
+    const counts = approvedDayCountsByType([lt], [], DAY, DAY);
+    expect(counts.get(lt.id)).toBe(0);
+  });
+
+  it("counts each day of a multi-day approved request", () => {
+    const lt = leaveType();
+    const r = request({ start_date: "2026-10-20", end_date: "2026-10-22" });
+    const counts = approvedDayCountsByType(
+      [lt],
+      [r],
+      new Date(2026, 9, 20),
+      new Date(2026, 9, 22),
+    );
+    expect(counts.get(lt.id)).toBe(3);
+  });
+
+  it("doesn't count a pending or denied request", () => {
+    const lt = leaveType();
+    const r = request({ status: "pending" });
+    expect(approvedDayCountsByType([lt], [r], DAY, DAY).get(lt.id)).toBe(0);
+  });
+
+  it("doesn't double-count two overlapping approved requests of the same type on the same day", () => {
+    const lt = leaveType();
+    const requests = [
+      request({ id: "r-1", start_date: "2026-10-24", end_date: "2026-10-26" }),
+      request({ id: "r-2", start_date: "2026-10-25", end_date: "2026-10-27" }),
+    ];
+    const counts = approvedDayCountsByType([lt], requests, DAY, DAY);
+    expect(counts.get(lt.id)).toBe(1);
+  });
+
+  it("respects weekend_applicable=false within the range", () => {
+    const lt = leaveType({ weekend_applicable: false });
+    const r = request({ start_date: "2026-10-30", end_date: "2026-11-01" }); // Fri–Sun
+    const counts = approvedDayCountsByType([lt], [r], FRIDAY, new Date(2026, 10, 1));
+    // Only the Sunday counts; Friday/Saturday are hidden for this type.
+    expect(counts.get(lt.id)).toBe(1);
   });
 });
 

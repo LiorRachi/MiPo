@@ -7,7 +7,7 @@ import {
   useHasUnseenDecision,
 } from "@/lib/hooks/useUnseenDecisions";
 
-export type ActiveScreen = "table" | "requests" | "settings";
+export type ActiveScreen = "table" | "requests" | "overview" | "settings";
 
 export default function BottomNav({
   active,
@@ -51,6 +51,10 @@ export default function BottomNav({
           )}
         </span>
         בקשות
+      </Link>
+      <Link href="/overview" className={active === "overview" ? "active" : ""}>
+        <span className="ic">⊞</span>
+        סיכום
       </Link>
     </nav>
   );
