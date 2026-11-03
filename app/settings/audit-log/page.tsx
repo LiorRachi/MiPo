@@ -38,6 +38,7 @@ export default async function SettingsAuditLog({
         active="settings"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin
       />
     );
   }
@@ -91,7 +92,7 @@ export default async function SettingsAuditLog({
         </div>
       </div>
 
-      <BottomNav active="settings" currentUserId={currentUser.id} />
+      <BottomNav active="settings" currentUserId={currentUser.id} isAdmin />
     </div>
   );
 }

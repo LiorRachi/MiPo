@@ -64,6 +64,7 @@ export default async function Overview({
         active="overview"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin={isAdmin}
       />
     );
   }
@@ -94,7 +95,7 @@ export default async function Overview({
         </div>
       </div>
 
-      <BottomNav active="overview" currentUserId={currentUser.id} />
+      <BottomNav active="overview" currentUserId={currentUser.id} isAdmin={isAdmin} />
     </div>
   );
 }

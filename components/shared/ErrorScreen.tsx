@@ -10,10 +10,12 @@ export default function ErrorScreen({
   active,
   currentUserId,
   userDisplayName,
+  isAdmin = false,
 }: {
   active: ActiveScreen;
   currentUserId?: string;
   userDisplayName?: string;
+  isAdmin?: boolean;
 }) {
   return (
     <div className="app-shell">
@@ -24,7 +26,7 @@ export default function ErrorScreen({
       <div className="app-main">
         <div className="setup-notice">שגיאה — אנא חזרו מאוחר יותר.</div>
       </div>
-      <BottomNav active={active} currentUserId={currentUserId} />
+      <BottomNav active={active} currentUserId={currentUserId} isAdmin={isAdmin} />
     </div>
   );
 }

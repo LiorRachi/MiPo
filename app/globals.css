@@ -156,10 +156,15 @@
 html,
 body {
   height: 100%;
+  /* Guards .app-shell's own height:100dvh + overflow:hidden (below), which
+     keep scrolling confined to .app-main: on Android, a document that's even
+     1px taller than the viewport (a dvh rounding/dynamic-toolbar edge case)
+     becomes a real scrollable page, dragging the header along with it. */
+  overflow: hidden;
+  background: var(--color-bg);
 }
 
 body {
-  background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
   margin: 0;

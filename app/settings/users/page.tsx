@@ -33,6 +33,7 @@ export default async function SettingsUsers() {
         active="settings"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin
       />
     );
   }
@@ -55,7 +56,7 @@ export default async function SettingsUsers() {
 
       <AddUserFab />
 
-      <BottomNav active="settings" currentUserId={currentUser.id} />
+      <BottomNav active="settings" currentUserId={currentUser.id} isAdmin />
     </div>
   );
 }

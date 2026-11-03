@@ -50,28 +50,6 @@ export async function fetchRequestsInRange(
   return data ?? [];
 }
 
-/** All approved, non-deleted requests in range, regardless of owner — the
- * RLS policy allows any authenticated user to read an approved request
- * (see migration 20261101114346), so this is the one case where a
- * non-admin's fetch is intentionally unscoped by profile. */
-export async function fetchApprovedRequestsInRange(
-  rangeStart: string,
-  rangeEnd: string,
-): Promise<LeaveRequest[]> {
-  const supabase = await createClient();
-  if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("leave_requests")
-    .select(LEAVE_REQUEST_COLUMNS)
-    .eq("status", "approved")
-    .is("deleted_at", null)
-    .lte("start_date", rangeEnd)
-    .gte("end_date", rangeStart)
-    .order("created_at", { ascending: true });
-  if (error) throw new Error(error.message);
-  return data ?? [];
-}
-
 /** Whether `profileId` already has a non-deleted, non-denied request
  * overlapping [date, endDate] — used to block double-booking the same
  * person across two requests, even of different leave types. Pass
@@ -130,24 +108,19 @@ export async function fetchLeavePageData(
   };
 }
 
-/** The same three fetches, but for `/` (the week-grid) — an admin still sees
- * everyone's requests of any status, but a non-admin sees the whole team's
- * *approved* requests (not just their own), matching the week-grid's
- * original "who's out" purpose. Pending/denied requests stay private to
- * their owner and admins; WeekGrid only ever renders approved ones anyway
- * (see isApprovedOnDay), so this just gives it more to filter through. */
+/** The three fetches `/` (the week-grid) needs — admin-only, so unlike
+ * fetchLeavePageData above there's no non-admin branch: everyone's requests
+ * of any status, leave types, and the employee-name list the "add request"
+ * picker needs. */
 export async function fetchWeekPageData(
   rangeStart: string,
   rangeEnd: string,
   currentUser: CurrentUser,
 ): Promise<LeavePageData> {
-  const isAdmin = currentUser.role === "admin";
   const [leaveTypes, requests, profiles] = await Promise.all([
     fetchLeaveTypes(),
-    isAdmin
-      ? fetchRequestsInRange(rangeStart, rangeEnd)
-      : fetchApprovedRequestsInRange(rangeStart, rangeEnd),
-    isAdmin ? fetchAllUsers(currentUser) : Promise.resolve([]),
+    fetchRequestsInRange(rangeStart, rangeEnd),
+    fetchAllUsers(currentUser),
   ]);
   return {
     leaveTypes,
