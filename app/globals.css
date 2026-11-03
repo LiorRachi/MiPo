@@ -35,6 +35,12 @@
   --leave-teal-bg: #e3f5f3;
   --leave-rose: #db2777;
   --leave-rose-bg: #fce7f3;
+  --leave-red: #dc2626;
+  --leave-red-bg: #fdecec;
+  --leave-yellow: #ca8a04;
+  --leave-yellow-bg: #fdf6e0;
+  --leave-indigo: #4f46e5;
+  --leave-indigo-bg: #eceafd;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", "Noto Sans Hebrew", Arial, sans-serif;
   --text-xs: 0.6875rem;
@@ -105,6 +111,12 @@
     --leave-teal-bg: #113330;
     --leave-rose: #f472b6;
     --leave-rose-bg: #3a1830;
+    --leave-red: #f87171;
+    --leave-red-bg: #3a1e1e;
+    --leave-yellow: #facc15;
+    --leave-yellow-bg: #3a3209;
+    --leave-indigo: #818cf8;
+    --leave-indigo-bg: #242253;
   }
 }
 
@@ -143,6 +155,12 @@
   --leave-teal-bg: #113330;
   --leave-rose: #f472b6;
   --leave-rose-bg: #3a1830;
+  --leave-red: #f87171;
+  --leave-red-bg: #3a1e1e;
+  --leave-yellow: #facc15;
+  --leave-yellow-bg: #3a3209;
+  --leave-indigo: #818cf8;
+  --leave-indigo-bg: #242253;
 }
 
 :root[data-theme="light"] {
@@ -408,6 +426,18 @@ select {
   background: var(--leave-rose);
 }
 
+.dot.red {
+  background: var(--leave-red);
+}
+
+.dot.yellow {
+  background: var(--leave-yellow);
+}
+
+.dot.indigo {
+  background: var(--leave-indigo);
+}
+
 /* Week grid — CSS Grid rather than a <table>. Table semantics (row/column
    headers) stopped buying much once the row-label column was removed, so a
    plain grid with 7 equal columns is simpler for the same result. */
@@ -557,6 +587,21 @@ select {
 .chip.rose {
   background: var(--leave-rose-bg);
   color: var(--leave-rose);
+}
+
+.chip.red {
+  background: var(--leave-red-bg);
+  color: var(--leave-red);
+}
+
+.chip.yellow {
+  background: var(--leave-yellow-bg);
+  color: var(--leave-yellow);
+}
+
+.chip.indigo {
+  background: var(--leave-indigo-bg);
+  color: var(--leave-indigo);
 }
 
 .empty-week {
@@ -873,6 +918,24 @@ select {
   border-color: var(--leave-rose);
   color: var(--leave-rose);
   background: var(--leave-rose-bg);
+}
+
+.type-pick button.sel.red {
+  border-color: var(--leave-red);
+  color: var(--leave-red);
+  background: var(--leave-red-bg);
+}
+
+.type-pick button.sel.yellow {
+  border-color: var(--leave-yellow);
+  color: var(--leave-yellow);
+  background: var(--leave-yellow-bg);
+}
+
+.type-pick button.sel.indigo {
+  border-color: var(--leave-indigo);
+  color: var(--leave-indigo);
+  background: var(--leave-indigo-bg);
 }
 
 .sheet-actions {
@@ -1365,6 +1428,21 @@ select {
   color: #fff;
 }
 
+.type-tag.red {
+  background: #dc2626;
+  color: #fff;
+}
+
+.type-tag.yellow {
+  background: #ca8a04;
+  color: #fff;
+}
+
+.type-tag.indigo {
+  background: #4f46e5;
+  color: #fff;
+}
+
 /* Settings — leave-type management */
 
 .page-title {
@@ -1793,6 +1871,24 @@ a.settings-row {
   background: var(--leave-rose-bg);
   color: var(--leave-rose);
   border: 1px solid var(--leave-rose);
+}
+
+.overview-stat-tile.red {
+  background: var(--leave-red-bg);
+  color: var(--leave-red);
+  border: 1px solid var(--leave-red);
+}
+
+.overview-stat-tile.yellow {
+  background: var(--leave-yellow-bg);
+  color: var(--leave-yellow);
+  border: 1px solid var(--leave-yellow);
+}
+
+.overview-stat-tile.indigo {
+  background: var(--leave-indigo-bg);
+  color: var(--leave-indigo);
+  border: 1px solid var(--leave-indigo);
 }
 
 .color-pick {
