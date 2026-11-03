@@ -27,6 +27,7 @@ export default async function SettingsLeaveTypes() {
         active="settings"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin
       />
     );
   }
@@ -57,7 +58,7 @@ export default async function SettingsLeaveTypes() {
 
       <AddLeaveTypeFab nextSortOrder={nextSortOrder} />
 
-      <BottomNav active="settings" currentUserId={currentUser.id} />
+      <BottomNav active="settings" currentUserId={currentUser.id} isAdmin />
     </div>
   );
 }

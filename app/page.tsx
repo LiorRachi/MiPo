@@ -43,7 +43,10 @@ export default async function Home({
 
   const currentUser = await getCurrentUser();
   if (!currentUser) redirect("/login");
-  const isAdmin = currentUser.role === "admin";
+  // The week grid shows the whole team's leave at a glance — admin-only for
+  // privacy, unlike /requests which already scopes a non-admin to their own.
+  if (currentUser.role !== "admin") redirect("/requests");
+  const isAdmin = true;
 
   let data: LeavePageData;
   let latestDecisionAt: string | null;
@@ -58,6 +61,7 @@ export default async function Home({
         active="table"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin
       />
     );
   }
@@ -107,6 +111,7 @@ export default async function Home({
         active="table"
         currentUserId={currentUser.id}
         latestOwnDecisionAt={latestDecisionAt}
+        isAdmin
       />
     </div>
   );

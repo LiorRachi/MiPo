@@ -63,6 +63,7 @@ export default async function Requests({
         active="requests"
         currentUserId={currentUser.id}
         userDisplayName={currentUser.displayName}
+        isAdmin={isAdmin}
       />
     );
   }
@@ -146,6 +147,7 @@ export default async function Requests({
         active="requests"
         currentUserId={currentUser.id}
         latestOwnDecisionAt={latestDecisionAt}
+        isAdmin={isAdmin}
       />
     </div>
   );

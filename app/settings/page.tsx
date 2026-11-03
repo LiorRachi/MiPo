@@ -141,10 +141,20 @@ export default async function Settings() {
         )}
 
         <SectionTitle icon={<UserIcon />} tone="teal">חשבון</SectionTitle>
+        <div className="settings-row settings-standalone-row">
+          <div className="field">
+            <label>שם מלא</label>
+            <div className="static-value">{currentUser.displayName}</div>
+          </div>
+          <div className="field">
+            <label>אימייל</label>
+            <div className="static-value">{currentUser.email}</div>
+          </div>
+        </div>
         <LogoutButton />
       </div>
 
-      <BottomNav active="settings" currentUserId={currentUser.id} />
+      <BottomNav active="settings" currentUserId={currentUser.id} isAdmin={isAdmin} />
     </div>
   );
 }
