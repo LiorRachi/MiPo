@@ -8,6 +8,9 @@ export const LEAVE_TYPE_COLORS = [
   "green",
   "teal",
   "rose",
+  "red",
+  "yellow",
+  "indigo",
 ] as const;
 
 export type LeaveTypeColor = (typeof LEAVE_TYPE_COLORS)[number];
@@ -23,4 +26,7 @@ export const COLOR_LABELS_HE: Record<LeaveTypeColor, string> = {
   green: "ירוק",
   teal: "טורקיז",
   rose: "ורוד",
+  red: "אדום",
+  yellow: "צהוב",
+  indigo: "אינדיגו",
 };
